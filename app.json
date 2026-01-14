@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "hello",
-    "slug": "hello",
+    "name": "task-manager-app",
+    "slug": "task-manager-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "hello",
+    "scheme": "taskmanagerapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
