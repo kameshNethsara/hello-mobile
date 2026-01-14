@@ -1,5 +1,6 @@
 import {
   View,
+  Image,
   Text,
   TouchableOpacity,
   TextInput,
@@ -61,8 +62,14 @@ const Register = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 justify-center px-8 py-12">
-          {/* Header Section */}
-          <View className="mb-10">
+          {/* Logo */}
+          <View className="items-center mb-6">
+            <Image
+              source={require("@/assets/images/hello-logo-rm-bg-green.png")}
+              style={{ width: 120, height: 120 }}
+              resizeMode="contain"
+            />
+            {/* Header Section */}
             <Text className="text-4xl font-extrabold text-white tracking-tight">
               Create Account
             </Text>
@@ -136,15 +143,15 @@ const Register = () => {
           {/* Terms text */}
           <Text className="text-zinc-500 text-xs mt-4 px-1">
             By signing up, you agree to our{" "}
-            <Text className="text-blue-400">Terms of Service</Text> and{" "}
-            <Text className="text-blue-400">Privacy Policy</Text>.
+            <Text className="text-green-400">Terms of Service</Text> and{" "}
+            <Text className="text-green-400">Privacy Policy</Text>.
           </Text>
 
           {/* Action Buttons */}
           <View className="mt-10 space-y-4">
             <TouchableOpacity
               onPress={handelRegister}
-              className="bg-blue-600 py-4 rounded-2xl shadow-lg active:bg-blue-700"
+              className="bg-green-600 py-4 rounded-2xl shadow-lg active:bg-green-700"
             >
               <Text className="text-white text-center font-bold text-lg">
                 Register
@@ -162,7 +169,7 @@ const Register = () => {
                   }
                 }}
               >
-                <Text className="text-blue-400 font-bold">Login</Text>
+                <Text className="text-green-400 font-bold">Login</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -52,17 +52,9 @@ const login = () => {
               style={{ width: 120, height: 120 }}
               resizeMode="contain"
             />
-            <Text className="text-4xl font-extrabold text-white tracking-tight" >
-              Hello
-            </Text>
-            <Text className="text-zinc-400 mt-2 text-lg">
-              Don't miss anything
-            </Text>
 
-          </View>
-          
-          {/* Header Section */}
-          <View className="mb-10">
+            {/* Header Section */}
+            
             <Text className="text-4xl font-extrabold text-white tracking-tight">
               Welcome Back
             </Text>
@@ -71,6 +63,15 @@ const login = () => {
             </Text>
           </View>
 
+          {/* Illustration */}
+          {/* <View className="items-center mb-6">
+            <Image
+              source={require("@/assets/images/auth-bg-1.png")}
+              style={{ width: 200, height: 200 }}
+              resizeMode="cover"
+            />
+          </View> */}
+          
           {/* Input Fields */}
           <View className="space-y-4">
             <View>
@@ -101,14 +102,14 @@ const login = () => {
 
           {/* Forgot Password */}
           <TouchableOpacity className="mt-4 items-end">
-            <Text className="text-blue-400 font-medium">Forgot Password?</Text>
+            <Text className="text-green-400 font-medium">Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* Action Buttons */}
           <View className="mt-10 space-y-4">
             <TouchableOpacity
               onPress={handleLogin}
-              className="bg-blue-600 py-4 rounded-2xl shadow-lg active:bg-blue-700"
+              className="bg-green-600 py-4 rounded-2xl shadow-lg active:bg-green-700"
             >
               <Text className="text-white text-center font-bold text-lg">Login</Text>
             </TouchableOpacity>
@@ -123,7 +124,7 @@ const login = () => {
             <View className="flex-row justify-center items-center mt-6">
               <Text className="text-zinc-500">Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push("/register")}>
-                <Text className="text-blue-400 font-bold">Register</Text>
+                <Text className="text-green-400 font-bold">Register</Text>
               </TouchableOpacity>
             </View>
           </View>
