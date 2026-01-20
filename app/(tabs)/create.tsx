@@ -32,31 +32,30 @@ export default function CreateScreen() {
       aspect: [1, 1],
       quality: 0.8,
     });
-
+    
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
     }
   };
 
-  // -------- SHARE POST (CLOUDINARY) --------
+  // -------- SHARE POST (CLOUDINARY + FIRESTORE) --------
   const handleShare = async () => {
     if (!selectedImage) return;
 
     try {
       setIsSharing(true);
 
-      // Upload to Cloudinary using reusable function
+      // Upload to Cloudinary
       const imageUrl = await uploadPostImage(selectedImage);
-
       // Save to Firestore
       await addPost(imageUrl, caption);
-
-      // Reset
+      // Reset form
       setSelectedImage(null);
       setCaption("");
+      // Go back to home/profile
       router.replace("/(tabs)");
     } catch (error) {
-      console.log("Upload error:", error);
+      console.error("Upload error:", error);
     } finally {
       setIsSharing(false);
     }
@@ -97,6 +96,7 @@ export default function CreateScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-black"
     >
+      {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-neutral-800">
         <TouchableOpacity
           disabled={isSharing}
@@ -120,17 +120,18 @@ export default function CreateScreen() {
           {isSharing ? (
             <ActivityIndicator size="small" color="#4ADE80" />
           ) : (
-            <Text className="text-green-400 text-base font-semibold">
-              Share
-            </Text>
+              <Text className="text-green-400 text-base font-semibold">
+                Share
+              </Text>
           )}
         </TouchableOpacity>
       </View>
 
+      {/* Image Preview + Caption */}
       <ScrollView>
         <View className="w-full aspect-square bg-neutral-900">
           <Image
-            source={selectedImage}
+            source={{ uri: selectedImage }}
             contentFit="cover"
             className="w-full h-full"
           />
