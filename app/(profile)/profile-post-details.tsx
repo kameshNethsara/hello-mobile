@@ -39,6 +39,9 @@ export default function PostDetailScreen() {
   const [editedCaption, setEditedCaption] = useState("");
   const [charCount, setCharCount] = useState(0);
 
+  const CAPTION_LIMIT = 250;
+  const [expanded, setExpanded] = useState(false);
+
   const { showLoader, hideLoader, isLoading } = useLoader();
 
   useEffect(() => {
@@ -172,11 +175,28 @@ export default function PostDetailScreen() {
               </>
             ) : (
               <View>
-                <Text style={styles.caption}>
+                {/* <Text style={styles.caption}>
                   <Text style={{ fontWeight: "bold" }}>{owner?.username || "user"} </Text>
                   {post.caption || "No caption"}
+                </Text> */}
+                <Text style={styles.caption}>
+                  <Text style={{ fontWeight: "bold" }}>
+                    {owner?.username || "user"}{" "}
+                  </Text>
+
+                  {expanded || post.caption?.length <= CAPTION_LIMIT
+                    ? post.caption?.replace(/\n/g, " ")
+                    : post.caption?.slice(0, CAPTION_LIMIT).replace(/\n/g, " ") + "..."}
+
                 </Text>
 
+                {post.caption?.length > CAPTION_LIMIT && (
+                  <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+                    <Text style={styles.readMoreText}>
+                      {expanded ? "Read less" : "Read more"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {isOwner && (
                   <TouchableOpacity
                     onPress={() => {
@@ -276,6 +296,14 @@ const styles = StyleSheet.create({
     minHeight: 120,
     textAlignVertical: "top",
     backgroundColor: "#111",
+  },
+  readMoreText: {
+    color: "#9ca3af",
+    marginTop: 4,
+    // marginLeft: 260,
+    fontWeight: "bold",
+    textDecorationLine: "underline",
+    fontSize: 14,
   },
   charCount: {
     color: "#6b7280",
