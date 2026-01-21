@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   StyleSheet,
   Image as RNImage,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -24,6 +25,7 @@ import {
   updateUserDetails,
 } from "@/services/userService";
 import { uploadUserAvatar } from "@/services/cloudinaryService";
+import { useLoader } from "@/hooks/useLoader";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -33,21 +35,32 @@ export default function EditProfileScreen() {
   const [username, setUsername] = useState("");
   const [fullname, setFullname] = useState("");
   const [bio, setBio] = useState("");
+  const [charCount, setCharCount] = useState(0);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { showLoader, hideLoader, isLoading } = useLoader();
   const [saving, setSaving] = useState(false);
+
+  // --- ANIMATION VALUES ---
+  const usernameAnim = useRef(new Animated.Value(0)).current;
+  const fullnameAnim = useRef(new Animated.Value(0)).current;
+  const bioAnim = useRef(new Animated.Value(0)).current;
+
+  const animateLabel = (animValue: Animated.Value, toValue: number) => {
+    Animated.timing(animValue, {
+      toValue,
+      duration: 200,
+      useNativeDriver: false, // top/left/fontSize don't support native driver
+    }).start();
+  };
 
   // ---------------- LOAD USER ----------------
   useEffect(() => {
     const loadUser = async () => {
       if (!currentUser) return;
-
       try {
-        setLoading(true);
-
+        showLoader();
         let userData = await getCurrentUserDetails();
 
-        // AUTO CREATE USER DOC IF NOT EXISTS
         if (!userData) {
           await addUserDetails("", "", currentUser.email || "", "", "");
           userData = await getCurrentUserDetails();
@@ -58,18 +71,39 @@ export default function EditProfileScreen() {
           setUsername(userData.username || "");
           setFullname(userData.fullname || "");
           setBio(userData.bio || "");
+          setCharCount(userData.bio?.length || 0);
           setAvatarUri(userData.image || null);
+          
+          // Trigger animations if values exist
+          if (userData.username) animateLabel(usernameAnim, 1);
+          if (userData.fullname) animateLabel(fullnameAnim, 1);
+          if (userData.bio) animateLabel(bioAnim, 1);
         }
       } catch (error) {
         console.error("Load user error:", error);
         Alert.alert("Error", "Failed to load profile");
       } finally {
-        setLoading(false);
+        hideLoader();
       }
     };
-
     loadUser();
   }, [currentUser]);
+
+  // --- HELPER FOR ANIMATED STYLES ---
+  const getFloatingLabelStyle = (anim: Animated.Value) => ({
+    top: anim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [14, -10], // Moves label from inside to top
+    }),
+    fontSize: anim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [14, 12],
+    }),
+    color: anim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["#6b7280", "#10b981"],
+    }),
+  });
 
   // ---------------- PICK IMAGE ----------------
   const pickImage = async () => {
@@ -79,7 +113,6 @@ export default function EditProfileScreen() {
       aspect: [1, 1],
       quality: 0.8,
     });
-
     if (!result.canceled) {
       setAvatarUri(result.assets[0].uri);
     }
@@ -88,30 +121,23 @@ export default function EditProfileScreen() {
   // ---------------- SAVE ----------------
   const handleSave = async () => {
     if (!user) return;
-
     if (!username.trim()) {
       Alert.alert("Error", "Username cannot be empty");
       return;
     }
-
     setSaving(true);
-
     try {
       let imageUrl = user.image;
-
       if (avatarUri && avatarUri !== user.image) {
         imageUrl = await uploadUserAvatar(avatarUri);
       }
-
       const updates = {
         username: username.trim(),
         fullname: fullname.trim(),
         bio: bio.trim(),
         image: imageUrl || "",
       };
-
       await updateUserDetails(user.id, updates);
-
       Alert.alert("Success", "Profile updated");
       router.back();
     } catch (error) {
@@ -122,19 +148,10 @@ export default function EditProfileScreen() {
     }
   };
 
-  // ---------------- UI STATES ----------------
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#10b981" />
-      </View>
-    );
-  }
-
-  if (!user) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.notFoundText}>Profile not found (Firestore)</Text>
       </View>
     );
   }
@@ -167,7 +184,7 @@ export default function EditProfileScreen() {
               source={{
                 uri:
                   avatarUri ||
-                  user.image ||
+                  user?.image ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(
                     fullname || username || "User"
                   )}&background=10b981&color=fff`,
@@ -182,28 +199,56 @@ export default function EditProfileScreen() {
 
         {/* FORM */}
         <View style={styles.form}>
-          <TextInput
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Username"
-            placeholderTextColor="#6b7280"
-            style={styles.input}
-          />
-          <TextInput
-            value={fullname}
-            onChangeText={setFullname}
-            placeholder="Full name"
-            placeholderTextColor="#6b7280"
-            style={styles.input}
-          />
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Bio"
-            placeholderTextColor="#6b7280"
-            multiline
-            style={[styles.input, styles.bioInput]}
-          />
+          {/* USERNAME */}
+          <View style={styles.inputWrapper}>
+            <Animated.Text style={[styles.label, getFloatingLabelStyle(usernameAnim)]}>
+              Username
+            </Animated.Text>
+            <TextInput
+              value={username}
+              onChangeText={setUsername}
+              onFocus={() => animateLabel(usernameAnim, 1)}
+              onBlur={() => !username && animateLabel(usernameAnim, 0)}
+              style={styles.input}
+              placeholderTextColor="transparent" // Placeholder hidden to use animated label
+            />
+          </View>
+
+          {/* FULLNAME */}
+          <View style={styles.inputWrapper}>
+            <Animated.Text style={[styles.label, getFloatingLabelStyle(fullnameAnim)]}>
+              Full Name
+            </Animated.Text>
+            <TextInput
+              value={fullname}
+              onChangeText={setFullname}
+              onFocus={() => animateLabel(fullnameAnim, 1)}
+              onBlur={() => !fullname && animateLabel(fullnameAnim, 0)}
+              style={styles.input}
+              placeholderTextColor="transparent"
+            />
+          </View>
+
+          {/* BIO */}
+          <View style={styles.inputWrapper}>
+            <Animated.Text style={[styles.label, getFloatingLabelStyle(bioAnim)]}>
+              Bio
+            </Animated.Text>
+            <TextInput
+              value={bio}
+              onChangeText={(text) => {
+                setBio(text);
+                setCharCount(text.length);
+              }}
+              onFocus={() => animateLabel(bioAnim, 1)}
+              onBlur={() => !bio && animateLabel(bioAnim, 0)}
+              maxLength={200}
+              multiline
+              style={[styles.input, styles.bioInput]}
+              placeholderTextColor="transparent"
+            />
+          </View>
+          <Text style={styles.charCount}>{charCount} / 200</Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -225,10 +270,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "black",
-  },
-  notFoundText: {
-    color: "white",
-    fontSize: 16,
   },
   header: {
     flexDirection: "row",
@@ -271,17 +312,36 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingHorizontal: 20,
-    marginTop: 10,
+    marginTop: 20,
+  },
+  inputWrapper: {
+    position: "relative",
+    marginBottom: 20,
+  },
+  label: {
+    position: "absolute",
+    left: 12,
+    // backgroundColor: "white", // Masks the input border behind the label
+    paddingHorizontal: 4,
+    zIndex: 1,
   },
   input: {
     backgroundColor: "#1f1f1f",
     color: "white",
     padding: 14,
     borderRadius: 10,
-    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#333",
   },
   bioInput: {
     minHeight: 100,
     textAlignVertical: "top",
+  },
+  charCount: {
+    color: "#9ca3af",
+    textAlign: "right",
+    marginTop: -10,
+    marginBottom: 10,
+    fontSize: 14,
   },
 });
