@@ -20,8 +20,6 @@ const usersCollection = collection(db, "users");
 import { deletePostCompletely } from "./postsService";
 import { getFollowing, getFollowers } from "./followService"; 
 
-
-
 // ---------------- USER INTERFACE ----------------
 export interface User {
   id: string;
@@ -63,32 +61,76 @@ export const addUserDetails = async (
 };
 
 // ---------------- GET CURRENT USER DETAILS ----------------
+// export const getCurrentUserDetails = async (): Promise<User | null> => {
+//   // const user = auth.currentUser;
+//   // if (!user) return null;
+
+//   // // Temporary version without orderBy
+//   // const q = query(
+//   //   usersCollection,
+//   //   where("userId", "==", user.uid)
+//   // );
+
+//   // const snapshot = await getDocs(q);
+//   // if (snapshot.empty) return null;
+//   const user = auth.currentUser;
+//   if (!user) {
+//     console.log("No authenticated user");
+//     return null;
+//   }
+
+//   const q = query(usersCollection, where("userId", "==", user.uid));
+//   const snapshot = await getDocs(q);
+
+//   console.log(`Found ${snapshot.size} documents for uid: ${user.uid}`);
+
+//   if (snapshot.empty) {
+//     console.log("No user document found → needs to be created");
+//     return null;
+//   }
+
+//   // Take the most recent one manually (not ideal but works)
+//   const docs = snapshot.docs;
+//   const mostRecent = docs.reduce((prev, current) => {
+//     return (prev.data().createdAt?.toMillis() || 0) > (current.data().createdAt?.toMillis() || 0)
+//       ? prev
+//       : current;
+//   });
+
+//   const data = mostRecent.data();
+
+//   return {
+//     id: mostRecent.id,
+//     userId: data.userId,
+//     username: data.username,
+//     fullname: data.fullname,
+//     email: data.email,
+//     bio: data.bio,
+//     image: data.image,
+//     followers: data.followers,
+//     following: data.following,
+//     posts: data.posts,
+//     createdAt: data.createdAt,
+//   };
+// };
+
 export const getCurrentUserDetails = async (): Promise<User | null> => {
   const user = auth.currentUser;
   if (!user) return null;
 
-  // Temporary version without orderBy
-  const q = query(
-    usersCollection,
-    where("userId", "==", user.uid)
-  );
+  const docRef = doc(db, "users", user.uid);
+  const docSnap = await getDoc(docRef);
 
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
+  if (!docSnap.exists()) {
+    // console.log("No user document found");
+    return null;
+  }
 
-  // Take the most recent one manually (not ideal but works)
-  const docs = snapshot.docs;
-  const mostRecent = docs.reduce((prev, current) => {
-    return (prev.data().createdAt?.toMillis() || 0) > (current.data().createdAt?.toMillis() || 0)
-      ? prev
-      : current;
-  });
-
-  const data = mostRecent.data();
+  const data = docSnap.data();
 
   return {
-    id: mostRecent.id,
-    userId: data.userId,
+    id: docSnap.id,
+    userId: user.uid,
     username: data.username,
     fullname: data.fullname,
     email: data.email,
@@ -100,6 +142,7 @@ export const getCurrentUserDetails = async (): Promise<User | null> => {
     createdAt: data.createdAt,
   };
 };
+
 // ---------------- GET ALL USERS ----------------
 export const getAllUsersDetails = async (): Promise<User[]> => {
   const snapshot = await getDocs(query(usersCollection, orderBy("createdAt", "desc")));
