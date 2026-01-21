@@ -12,28 +12,28 @@ export default function GetStart() {
       <View className="items-center mb-6">
         <Image
           source={require("@/assets/images/hello-logo-rm-bg-green.png")}
-          style={{ width: 120, height: 120 }}
+          style={{ width: 120, height: 120, marginBottom: -30 }}
           resizeMode="contain"
         />
         <Text className="text-4xl font-extrabold text-white tracking-tight">
           Hello
         </Text>
-        <Text className="text-zinc-400 mt-2 text-lg">
+        <Text className="text-zinc-400 mt-1 text-lg">
           Don't miss anything
         </Text>
       </View>
 
       {/* Illustration */}
-      <View className="items-center mb-6">
+      <View className="items-center mb-5">
         <Image
           source={require("@/assets/images/auth-bg-1.png")}
-          style={{ width: 400, height: 400 }}
+          style={{ width: 350, height: 350 }}
           resizeMode="cover"
         />
       </View>
 
       {/* Action Buttons */}
-      <View className="mt-10 space-y-4">
+      <View className="mt-10 mb-2 space-y-4">
         <TouchableOpacity
           onPress={() => router.push("/login")}
           className="bg-green-600 py-4 rounded-2xl shadow-lg active:bg-green-700"

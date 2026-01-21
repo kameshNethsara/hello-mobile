@@ -1,61 +1,70 @@
-import { Image, View, Text, KeyboardAvoidingView, Platform, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native'
-import React, { useState } from 'react'
-import { router, useRouter } from 'expo-router'
-import { navigate } from 'expo-router/build/global-state/routing';
-// import { useGoogleAuth } from "@/service/useGoogleAuth";
+import { 
+  Image, 
+  View, 
+  Text, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  TextInput, 
+  TouchableOpacity, 
+  Alert 
+} from 'react-native';
+import React, { useState } from 'react';
+import { useRouter } from "expo-router";
+// Corrected navigate import to use router.replace or router.push per Expo Router best practices
 import { useLoader } from '@/hooks/useLoader';
 import { loging } from '@/services/authService';
 
 const login = () => {
-  
-  // const { signIn } = useGoogleAuth();
-  const { showLoader, hideLoader, isLoading } = useLoader()
-  
+  const { showLoader, hideLoader, isLoading } = useLoader();
   const router = useRouter();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    // Add your login logic here
-    // console.log("Logging in with:", email, password);
-    // navigate("/home");
-     if (isLoading) return
+    if (isLoading) return;
     
     if (!email || !password) {
-      console.log("Please fill all the fields");
-      Alert.alert("Please fill all the fields")
+      Alert.alert("Please fill all the fields");
       return;
     }
+    
     try {
-      showLoader()
+      showLoader();
       await loging(email, password);
-      navigate("/(tabs)");
+      // Using router.replace for navigation after login is generally better 
+      // to prevent users from going back to the login screen
+      router.replace("/(tabs)");
     } catch (error) {
-      Alert.alert("Error Login user")
+      Alert.alert("Error Login user");
     } finally {
-      hideLoader()
+      hideLoader();
     }
   };
 
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === "ios" ? "padding" : "height"} 
-      className="flex-1 bg-zinc-950"
+      style={{ flex: 1 }}
+      className="bg-zinc-950"
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View className="flex-1 justify-center px-8">
-
-           {/* Logo */}
-          <View className="items-center mb-6">
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }} 
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="flex-1 justify-center px-8 py-10">
+          
+          {/* Logo & Header Section */}
+          <View className="items-center mb-10">
             <Image
               source={require("@/assets/images/hello-logo-rm-bg-green.png")}
               style={{ width: 120, height: 120 }}
               resizeMode="contain"
             />
-
-            {/* Header Section */}
             
-            <Text className="text-4xl font-extrabold text-white tracking-tight">
+            <Text className="text-4xl font-extrabold text-white tracking-tight mt-4">
               Welcome Back
             </Text>
             <Text className="text-zinc-400 mt-2 text-lg">
@@ -63,15 +72,6 @@ const login = () => {
             </Text>
           </View>
 
-          {/* Illustration */}
-          {/* <View className="items-center mb-6">
-            <Image
-              source={require("@/assets/images/auth-bg-1.png")}
-              style={{ width: 200, height: 200 }}
-              resizeMode="cover"
-            />
-          </View> */}
-          
           {/* Input Fields */}
           <View className="space-y-4">
             <View>
@@ -83,11 +83,11 @@ const login = () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-green-500"
               />
             </View>
 
-            <View>
+            <View className="mt-4">
               <Text className="text-zinc-300 mb-2 ml-1 font-medium">Password</Text>
               <TextInput
                 placeholder="••••••••"
@@ -95,7 +95,7 @@ const login = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-green-500"
               />
             </View>
           </View>
@@ -106,22 +106,18 @@ const login = () => {
           </TouchableOpacity>
 
           {/* Action Buttons */}
-          <View className="mt-10 space-y-4">
+          <View className="mt-10">
             <TouchableOpacity
               onPress={handleLogin}
+              disabled={isLoading}
               className="bg-green-600 py-4 rounded-2xl shadow-lg active:bg-green-700"
             >
-              <Text className="text-white text-center font-bold text-lg">Login</Text>
+              <Text className="text-white text-center font-bold text-lg">
+                {isLoading ? "Logging in..." : "Login"}
+              </Text>
             </TouchableOpacity>
 
-            {/* <TouchableOpacity
-              onPress={signIn}
-              className="bg-blue-600 py-4 rounded-2xl shadow-lg active:bg-blue-700"
-            >
-              <Text className="text-white text-center font-bold text-lg">Login with Google</Text>
-            </TouchableOpacity> */}
-
-            <View className="flex-row justify-center items-center mt-6">
+            <View className="flex-row justify-center items-center mt-5">
               <Text className="text-zinc-500">Don't have an account? </Text>
               <TouchableOpacity onPress={() => router.push("/register")}>
                 <Text className="text-green-400 font-bold">Register</Text>
@@ -132,7 +128,7 @@ const login = () => {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
-}
+  );
+};
 
-export default login
+export default login;

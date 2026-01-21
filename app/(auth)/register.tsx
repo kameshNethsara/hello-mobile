@@ -16,8 +16,7 @@ import { useLoader } from "@/hooks/useLoader";
 
 const Register = () => {
   const router = useRouter();
-
-  const { showLoader, hideLoader, isLoading } = useLoader()
+  const { showLoader, hideLoader, isLoading } = useLoader();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,41 +24,44 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handelRegister = async () => {
-    if (isLoading) return
-    
+    if (isLoading) return;
+
     if (!name || !email || !password || !confirmPassword) {
-      console.log("Please fill all the fields");
-      Alert.alert("Please fill all the fields")
+      Alert.alert("Please fill all the fields");
       return;
     }
+
     if (password !== confirmPassword) {
-      console.log("Passwords do not match");
-      Alert.alert("Passwords do not match")
+      Alert.alert("Passwords do not match");
       return;
     }
-    
+
     try {
-      showLoader()
+      showLoader();
       await registerUser(name, email, password);
-      console.log("User registered successfully");
-      Alert.alert("User registered successfully")
+      Alert.alert("User registered successfully");
       router.push("/login");
     } catch (error) {
-      console.log("Error registering user:", error);
-      Alert.alert("Error registering user")
+      Alert.alert("Error registering user");
     } finally {
-      hideLoader()
+      hideLoader();
     }
   };
 
   return (
     <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-zinc-950"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+      className="bg-zinc-950"
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 40,
+        }}
       >
         <View className="flex-1 justify-center px-8 py-12">
           {/* Logo */}
@@ -69,7 +71,7 @@ const Register = () => {
               style={{ width: 120, height: 120 }}
               resizeMode="contain"
             />
-            {/* Header Section */}
+
             <Text className="text-4xl font-extrabold text-white tracking-tight">
               Create Account
             </Text>
@@ -78,9 +80,8 @@ const Register = () => {
             </Text>
           </View>
 
-          {/* Input Fields */}
+          {/* Inputs */}
           <View className="space-y-4">
-            {/* Full Name */}
             <View>
               <Text className="text-zinc-300 mb-2 ml-1 font-medium">
                 Full Name
@@ -90,11 +91,10 @@ const Register = () => {
                 placeholderTextColor="#71717a"
                 value={name}
                 onChangeText={setName}
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800"
               />
             </View>
 
-            {/* Email Address */}
             <View>
               <Text className="text-zinc-300 mb-2 ml-1 font-medium">
                 Email Address
@@ -106,11 +106,10 @@ const Register = () => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800"
               />
             </View>
 
-            {/* Password */}
             <View>
               <Text className="text-zinc-300 mb-2 ml-1 font-medium">
                 Password
@@ -121,13 +120,13 @@ const Register = () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800"
               />
             </View>
 
             <View>
               <Text className="text-zinc-300 mb-2 ml-1 font-medium">
-                Conformed Password
+                Confirm Password
               </Text>
               <TextInput
                 placeholder="Minimum 8 characters"
@@ -135,19 +134,19 @@ const Register = () => {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry
-                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800 focus:border-blue-500"
+                className="bg-zinc-900 text-white px-5 py-4 rounded-2xl border border-zinc-800"
               />
             </View>
           </View>
 
-          {/* Terms text */}
+          {/* Terms */}
           <Text className="text-zinc-500 text-xs mt-4 px-1">
             By signing up, you agree to our{" "}
             <Text className="text-green-400">Terms of Service</Text> and{" "}
             <Text className="text-green-400">Privacy Policy</Text>.
           </Text>
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <View className="mt-10 space-y-4">
             <TouchableOpacity
               onPress={handelRegister}
@@ -161,13 +160,9 @@ const Register = () => {
             <View className="flex-row justify-center items-center mt-6">
               <Text className="text-zinc-500">Already have an account? </Text>
               <TouchableOpacity
-                onPress={() => {
-                  if (router.canGoBack?.()) {
-                    router.back();
-                  } else {
-                    router.push("/login");
-                  }
-                }}
+                onPress={() =>
+                  router.canGoBack?.() ? router.back() : router.push("/login")
+                }
               >
                 <Text className="text-green-400 font-bold">Login</Text>
               </TouchableOpacity>

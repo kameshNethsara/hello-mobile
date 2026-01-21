@@ -101,7 +101,7 @@ export default function EditProfileScreen() {
     }),
     color: anim.interpolate({
       inputRange: [0, 1],
-      outputRange: ["#6b7280", "#10b981"],
+      outputRange: ["#6b7280", "#4ADE80"],
     }),
   });
 
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   doneText: {
-    color: "#10b981",
+    color: "#4ADE80",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 0,
     right: 0,
-    backgroundColor: "#10b981",
+    backgroundColor: "#4ADE80",
     padding: 10,
     borderRadius: 30,
   },

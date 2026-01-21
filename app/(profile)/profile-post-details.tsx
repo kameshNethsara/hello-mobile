@@ -75,7 +75,7 @@ export default function PostDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color="#4ADE80" />
       </View>
     );
   }
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#10b981",
+    borderColor: "#4ADE80",
     borderRadius: 12,
     padding: 12,
     minHeight: 120,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   editText: {
-    color: "#10b981",
+    color: "#4ADE80",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   saveText: {
-    color: "#10b981",
+    color: "#4ADE80",
     fontWeight: "bold",
     fontSize: 16,
   },
