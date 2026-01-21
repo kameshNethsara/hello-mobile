@@ -18,6 +18,7 @@ import { getCurrentUserDetails, User } from "@/services/userService";
 import { Post, deletePostCompletely, listenToMyPosts } from "@/services/postsService";
 import { listenToFollowers, listenToFollowing } from "@/services/followService";
 import { onAuthStateChanged } from "firebase/auth";
+import { useLoader } from '@/hooks/useLoader';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -27,15 +28,17 @@ export default function ProfileScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { showLoader, hideLoader, isLoading } = useLoader()
 
   // ── Load user profile ─────────────────────────────
   const loadProfile = useCallback(async () => {
     if (!currentUser) return;
 
     try {
-      setLoading(true);
+      // setLoading(true);
+      showLoader()
       const userData = await getCurrentUserDetails();
       if (!userData) {
         Alert.alert("Error", "Profile not found. Please login again.");
@@ -46,7 +49,8 @@ export default function ProfileScreen() {
       console.error("Profile load error:", error);
       Alert.alert("Error", "Failed to load profile");
     } finally {
-      setLoading(false);
+      // setLoading(false);
+      hideLoader()
       setRefreshing(false);
     }
   }, [currentUser]);
@@ -131,7 +135,15 @@ export default function ProfileScreen() {
     );
   }
 
-  if (loading && !user) {
+  // if (loading && !user) {
+  //   return (
+  //     <View style={styles.centered}>
+  //       <ActivityIndicator size="large" color="#10b981" />
+  //     </View>
+  //   );
+  // }
+
+  if (isLoading && !user) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#10b981" />
@@ -148,6 +160,7 @@ export default function ProfileScreen() {
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.postItem}
+          onPress={() => router.push(`/(profile)/profile-post-details?id=${item.id}`)}
           onLongPress={() => handleDeletePost(item.id)}
         >
           <Image
