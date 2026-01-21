@@ -79,23 +79,30 @@ export default function ProfileScreen() {
   }, [currentUser?.uid]);
 
   // ── Real-time user posts ─────────────────────────
-  // useEffect(() => {
-  //   if (!currentUser) return;
-
-  //   const unsubscribe = listenToMyPosts((posts) => setPosts(posts));
-  //   return () => unsubscribe();
-  // }, [currentUser]); 
-
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const unsubscribePosts = listenToMyPosts((posts) => setPosts(posts));
-        return () => unsubscribePosts();
-      }
+    // Only run if currentUser is available
+    if (!currentUser?.uid) return;
+
+    const unsubscribePosts = listenToMyPosts((posts) => {
+      setPosts(posts);
     });
 
-    return () => unsubscribeAuth();
-  }, []);
+    return () => unsubscribePosts();
+  }, [currentUser?.uid]);
+
+  // useEffect(() => {
+  //   const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+  //     if (user) {
+  //       const unsubscribePosts = listenToMyPosts((posts) => setPosts(posts));
+  //       // Clean up listener on logout
+  //       return () => unsubscribePosts();
+  //     } else {
+  //       setPosts([]);
+  //     }
+  //   });
+
+  //   return () => unsubscribeAuth();
+  // }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -103,7 +110,26 @@ export default function ProfileScreen() {
   };
 
 
-  // ── Delete post ─────────────────────────────────
+  // // ── Delete post ─────────────────────────────────
+  // const handleDeletePost = (postId: string) => {
+  //   Alert.alert("Delete Post", "This action cannot be undone.", [
+  //     { text: "Cancel", style: "cancel" },
+  //     {
+  //       text: "Delete",
+  //       style: "destructive",
+  //       onPress: async () => {
+  //         try {
+  //           setPosts((prev) => prev.filter((p) => p.id !== postId));
+  //           await deletePostCompletely(postId);
+  //         } catch (err) {
+  //           // console.error("Delete failed:", err);
+  //           Alert.alert("Error", "Could not delete post");
+  //         }
+  //       },
+  //     },
+  //   ]);
+  // };
+
   const handleDeletePost = (postId: string) => {
     Alert.alert("Delete Post", "This action cannot be undone.", [
       { text: "Cancel", style: "cancel" },
@@ -112,10 +138,10 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            setPosts((prev) => prev.filter((p) => p.id !== postId));
+            // Don't manually update state here
+            // let the listener handle it
             await deletePostCompletely(postId);
           } catch (err) {
-            // console.error("Delete failed:", err);
             Alert.alert("Error", "Could not delete post");
           }
         },
