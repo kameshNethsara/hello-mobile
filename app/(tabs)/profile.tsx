@@ -42,11 +42,12 @@ export default function ProfileScreen() {
       const userData = await getCurrentUserDetails();
       if (!userData) {
         Alert.alert("Error", "Profile not found. Please login again.");
-        return;
+        return ;
       }
+      // console.log(userData);
       setUser(userData);
     } catch (error) {
-      console.error("Profile load error:", error);
+      // console.error("Profile load error:", error);
       Alert.alert("Error", "Failed to load profile");
     } finally {
       // setLoading(false);
@@ -54,10 +55,11 @@ export default function ProfileScreen() {
       setRefreshing(false);
     }
   }, [currentUser]);
-
+  
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    if (!currentUser) return;
+    loadProfile();  
+  }, [currentUser, loadProfile]);
 
   // ── Real-time followers / following ───────────────
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function ProfileScreen() {
 
   //   const unsubscribe = listenToMyPosts((posts) => setPosts(posts));
   //   return () => unsubscribe();
-  // }, [currentUser]);
+  // }, [currentUser]); 
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -113,7 +115,7 @@ export default function ProfileScreen() {
             setPosts((prev) => prev.filter((p) => p.id !== postId));
             await deletePostCompletely(postId);
           } catch (err) {
-            console.error("Delete failed:", err);
+            // console.error("Delete failed:", err);
             Alert.alert("Error", "Could not delete post");
           }
         },
@@ -155,6 +157,7 @@ export default function ProfileScreen() {
     <FlatList
       style={styles.container}
       data={posts}
+      extraData={user}   
       keyExtractor={(item) => item.id}
       numColumns={3}
       renderItem={({ item }) => (
@@ -252,7 +255,7 @@ const styles = StyleSheet.create({
   bio: { color: "#d1d5db", marginTop: 4 },
   bioPlaceholder: { color: "#6b7280", fontStyle: "italic", marginTop: 4 },
 
-  editButton: { marginTop: 16, borderWidth: 1, borderColor: "#4b5563", borderRadius: 8, paddingVertical: 12 },
+  editButton: { marginTop: 16, borderWidth: 1, borderColor: "#4ADE80", borderRadius: 8, paddingVertical: 12 },
   editButtonText: { color: "white", textAlign: "center" },
 
   emptyContainer: { alignItems: "center", paddingVertical: 40 },

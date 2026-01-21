@@ -80,7 +80,7 @@ export default function EditProfileScreen() {
           if (userData.bio) animateLabel(bioAnim, 1);
         }
       } catch (error) {
-        console.error("Load user error:", error);
+        // console.error("Load user error:", error);
         Alert.alert("Error", "Failed to load profile");
       } finally {
         hideLoader();
@@ -139,9 +139,9 @@ export default function EditProfileScreen() {
       };
       await updateUserDetails(user.id, updates);
       Alert.alert("Success", "Profile updated");
-      router.back();
+      router.navigate("/(tabs)/profile")
     } catch (error) {
-      console.error("Save error:", error);
+      // console.error("Save error:", error);
       Alert.alert("Error", "Failed to update profile");
     } finally {
       setSaving(false);
