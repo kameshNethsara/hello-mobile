@@ -229,3 +229,59 @@ export const listenToUsers = (
     callback(users);
   });
 };
+
+const userCache = new Map<string, any>();
+
+export const getUserByIdForHome = async (userId: string) => {
+  if (userCache.has(userId)) {
+    return userCache.get(userId);
+  }
+
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) return null;
+
+  const user = snap.data();
+  const data = {
+    username: user.username,
+    avatar: user.image,
+  };
+
+  userCache.set(userId, data);
+  return data;
+};
+
+export const getUserById = async (userId: string): Promise<User | null> => {
+  // Check Cache
+  if (userCache.has(userId)) {
+    return userCache.get(userId);
+  }
+
+  const userRef = doc(db, "users", userId);
+  const snap = await getDoc(userRef);
+
+  if (!snap.exists()) return null;
+
+  const data = snap.data();
+  
+  // Construct the full User object
+  const userDetails: User = {
+    id: snap.id,
+    userId: data.userId,
+    username: data.username,
+    fullname: data.fullname, // Now correctly included
+    email: data.email,
+    bio: data.bio,           // Now correctly included
+    image: data.image,       // Kept as 'image' to match your UI
+    followers: data.followers ?? 0,
+    following: data.following ?? 0,
+    posts: data.posts ?? 0,
+    createdAt: data.createdAt,
+  };
+
+  // Save to Cache
+  userCache.set(userId, userDetails);
+  
+  return userDetails;
+};
