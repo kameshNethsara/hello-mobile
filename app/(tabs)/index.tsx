@@ -1,10 +1,14 @@
 import { COLORS } from "@/constants/theme";
 import { logout } from "@/services/authService";
 import {
+  bookMarkedPost,
+  isBookMarkedPostSaved,
+  listenToBookMarkedPosts,
   listenToPostLikes,
   listenToPosts,
   Post,
   toggleLikePost,
+  unBookMarkedPost,
 } from "@/services/postsService";
 import { getUserByIdForHome } from "@/services/userService";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,9 +43,9 @@ export default function Index() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>(
-    {},
-  );
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({},);
+  const [savedBookMarkedPosts, setSavedBookMarkedPosts] = useState<Record<string, boolean>>({});
+
   const toggleExpanded = (postId: string) => {
     setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
@@ -126,6 +130,32 @@ export default function Index() {
     ]);
   };
 
+  // //BookMark useEffect
+  // useEffect(() => {
+  //   const checkSaved = async () => {
+  //     const savedStatus: Record<string, boolean> = {};
+  //     for (const post of posts) {
+  //       savedStatus[post.id] = await isBookMarkedPostSaved(post.id);
+  //     }
+  //     setSavedBookMarkedPosts(savedStatus);
+  //   };
+
+  //   if (posts.length > 0) checkSaved();
+  // }, [posts]);
+
+    // ─── Real-time bookmarked posts ─────────────────────
+  useEffect(() => {
+    const unsubscribe = listenToBookMarkedPosts((savedPostIds) => {
+      const savedStatus: Record<string, boolean> = {};
+      savedPostIds.forEach((id) => {
+        savedStatus[id] = true;
+      });
+      setSavedBookMarkedPosts(savedStatus);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   // ─── Render single post (improved) ─────────────────────
   const renderPost = ({ item }: { item: Post }) => {
     const user = users[item.userId] ?? {
@@ -156,7 +186,7 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.postActions}>
+        {/* <View style={styles.postActions}>
           <View style={styles.actionsLeft}>
             <TouchableOpacity
               onPress={() =>
@@ -183,7 +213,55 @@ export default function Index() {
               <Ionicons name="chatbubble-outline" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
+        </View> */}
+        <View style={styles.postActions}>
+        {/* Left side */}
+        <View style={styles.actionsLeft}>
+          <TouchableOpacity
+            onPress={() =>
+              toggleLikePost(
+                item.id,
+                (isLiked) => setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
+                (count) => setLikesCount((p) => ({ ...p, [item.id]: count }))
+              )
+            }
+          >
+            <Ionicons
+              name={likedPosts[item.id] ? "heart" : "heart-outline"}
+              size={28}
+              color={likedPosts[item.id] ? "#ff3366" : "#fff"}
+            />
+          </TouchableOpacity>
+
+          <Text style={styles.likesText}>
+            {likesCount[item.id] ?? item.likes ?? 0} likes
+          </Text>
+
+          <TouchableOpacity>
+            <Ionicons name="chatbubble-outline" size={26} color="#fff" />
+          </TouchableOpacity>
         </View>
+
+        {/* Right side: Save button */}
+        <TouchableOpacity
+          style={styles.saveBtn}
+          onPress={async () => {
+            if (savedBookMarkedPosts[item.id]) {
+              await unBookMarkedPost(item.id);
+            } else {
+              await bookMarkedPost(item.id);
+            }
+            setSavedBookMarkedPosts((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
+          }}
+        >
+          <Ionicons
+            name={savedBookMarkedPosts[item.id] ? "bookmark" : "bookmark-outline"}
+            size={26}
+            color={savedBookMarkedPosts[item.id] ? "#FFD700" : "#fff"} // yellow if saved
+          />
+        </TouchableOpacity>
+
+      </View>
 
         {item.caption ? (
           <View style={styles.postInfo}>
@@ -325,12 +403,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: "space-between",
+    alignItems: "center",
   },
   actionsLeft: {
     flexDirection: "row",
     gap: 20,
+    alignItems: "center",
   },
-
+  saveBtn: {
+    padding: 4,
+  },
   postInfo: {
     paddingHorizontal: 12,
     paddingBottom: 8,
