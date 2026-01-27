@@ -26,8 +26,10 @@ import { db, auth } from "@/services/firebase";
 import { useLoader } from "@/hooks/useLoader";
 import { 
   editPostCaption, 
-  Post, 
-  toggleLikePost 
+  listenToPostLikes,
+  listenToPosts,
+  Post,
+  toggleLikePost,
 } from "@/services/postsService";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -50,19 +52,33 @@ export default function PostDetailScreen() {
 
   const { showLoader, hideLoader, isLoading } = useLoader();
 
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState<number>(0);
+  // const [liked, setLiked] = useState(false);
+  // const [likesCount, setLikesCount] = useState<number>(0);
+    const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+    const [likesCount, setLikesCount] = useState<Record<string, number>>({});
 
   // ── Handle Toggle Like ─────────────────────────────
-  const handleToggleLike = async () => {
-    if (!post) return;
-    try {
-      // The service uses runTransaction, so the UI will update via the onSnapshot listener
-      await toggleLikePost(post.id, setLiked, setLikesCount);
-    } catch (err) {
-      console.error("Failed to toggle like", err);
-    }
-  };
+  // const handleToggleLike = async () => {
+  //   if (!post) return;
+  //   try {
+  //     // The service uses runTransaction, so the UI will update via the onSnapshot listener
+  //     await toggleLikePost(post.id, setLiked, setLikesCount);
+  //   } catch (err) {
+  //     console.error("Failed to toggle like", err);
+  //   }
+  // };
+
+  // ── Real-time likes for this post ──
+  useEffect(() => {
+    if (!post?.id) return;
+
+    const unsubscribe = listenToPostLikes(post.id, (count, likedByMe) => {
+      setLikesCount({ [post.id]: count });
+      setLikedPosts({ [post.id]: likedByMe });
+    });
+
+    return () => unsubscribe();
+  }, [post?.id]);
 
   // ── Real-time Post Data Listener ───────────────────
   useEffect(() => {
@@ -82,16 +98,16 @@ export default function PostDetailScreen() {
   }, [id]);
 
   // ── Check if current user liked the post ───────────
-  useEffect(() => {
-    if (!id || !auth.currentUser) return;
+  // useEffect(() => {
+  //   if (!id || !auth.currentUser) return;
 
-    const likeRef = doc(db, "posts", id, "likes", auth.currentUser.uid);
-    const unsubscribe = onSnapshot(likeRef, (docSnap) => {
-      setLiked(docSnap.exists());
-    });
+  //   const likeRef = doc(db, "posts", id, "likes", auth.currentUser.uid);
+  //   const unsubscribe = onSnapshot(likeRef, (docSnap) => {
+  //     setLiked(docSnap.exists());
+  //   });
 
-    return () => unsubscribe();
-  }, [id]);
+  //   return () => unsubscribe();
+  // }, [id]);
 
   // ── Load Post Owner Data ───────────────────────────
   useEffect(() => {
@@ -178,15 +194,30 @@ export default function PostDetailScreen() {
         {/* Details */}
         <View style={styles.details}>
           <View style={styles.actionsRow}>
-            <TouchableOpacity onPress={handleToggleLike} style={styles.actionBtn}>
+            {/* <TouchableOpacity onPress={handleToggleLike} style={styles.actionBtn}>
               <Ionicons
                 name={liked ? "heart" : "heart-outline"}
                 size={26}
                 color={liked ? "red" : "#fff"}
               />
+            </TouchableOpacity> */}
+            <TouchableOpacity
+              onPress={() => post && toggleLikePost(
+                post.id,
+                (isLiked) => setLikedPosts({ [post.id]: isLiked }),
+                (count) => setLikesCount({ [post.id]: count })
+              )}
+              style={styles.actionBtn}
+            >
+              <Ionicons
+                name={likedPosts[post.id] ? "heart" : "heart-outline"}
+                size={26}
+                color={likedPosts[post.id] ? "red" : "#fff"}
+              />
             </TouchableOpacity>
 
-            <Text style={styles.likesText}>{likesCount} likes</Text>
+            {/* <Text style={styles.likesText}>{likesCount} likes</Text> */}
+            <Text style={styles.likesText}>{likesCount[post.id] ?? 0} likes</Text>
 
             <TouchableOpacity onPress={() => console.log("Go to comments")} style={styles.actionBtn}>
               <Ionicons name="chatbubble-outline" size={26} color="#fff" />
