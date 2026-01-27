@@ -18,6 +18,7 @@ import {
   QueryDocumentSnapshot,
   startAfter,
   limit,
+  setDoc,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "./firebase";
@@ -323,6 +324,57 @@ export const listenToUserPosts = (
       };
     });
     callback(posts);
+  });
+
+  return unsubscribe;
+};
+
+
+// BookMarked a post
+export const bookMarkedPost = async (postId: string) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  // Ensure user doc exists
+  await setDoc(doc(db, "users", user.uid), { createdAt: serverTimestamp() }, { merge: true });
+
+  // Save bookmark
+  const ref = doc(db, "users", user.uid, "bookmarks", postId);
+  await setDoc(ref, { savedAt: serverTimestamp() });
+};
+
+// Unsave a post
+export const unBookMarkedPost = async (postId: string) => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const ref = doc(db, "users", user.uid, "bookmarks", postId);
+  await deleteDoc(ref);
+};
+
+// Check if post is saved
+export const isBookMarkedPostSaved = async (postId: string): Promise<boolean> => {
+  const user = auth.currentUser;
+  if (!user) return false;
+
+  const ref = doc(db, "users", user.uid, "bookmarks", postId);
+  const snap = await getDoc(ref);
+  return snap.exists();
+};
+
+// ---------------- REAL-TIME BOOKMARK LISTENER ----------------
+export const listenToBookMarkedPosts = (
+  callback: (savedPostIds: string[]) => void
+) => {
+  const user = auth.currentUser;
+  if (!user) return () => {};
+
+  const bookmarksCol = collection(db, "users", user.uid, "bookmarks");
+  const q = query(bookmarksCol);
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const savedPostIds = snapshot.docs.map((doc) => doc.id);
+    callback(savedPostIds);
   });
 
   return unsubscribe;
