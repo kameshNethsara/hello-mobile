@@ -56,6 +56,7 @@ export default function PostDetailScreen() {
   // const [likesCount, setLikesCount] = useState<number>(0);
     const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
     const [likesCount, setLikesCount] = useState<Record<string, number>>({});
+    
 
   // ── Handle Toggle Like ─────────────────────────────
   // const handleToggleLike = async () => {

@@ -1,4 +1,5 @@
 import { COLORS } from "@/constants/theme";
+import { useLoader } from "@/hooks/useLoader";
 import { logout } from "@/services/authService";
 import {
   bookMarkedPost,
@@ -39,8 +40,10 @@ export default function Index() {
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [likesCount, setLikesCount] = useState<Record<string, number>>({});
 
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { showLoader, hideLoader, isLoading } = useLoader()
+  
   const [error, setError] = useState<string | null>(null);
 
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({},);
@@ -51,20 +54,52 @@ export default function Index() {
   };
 
   // ─── Real-time listener ────────────────────────────────
+  // useEffect(() => {
+  //   const unsubscribe = listenToPosts((freshPosts) => {
+  //     setPosts(freshPosts);
+  //     setLoading(false);
+
+  //     // Optional: only load users we don't have yet
+  //     const missing = freshPosts
+  //       .map((p) => p.userId)
+  //       .filter((id) => id && !users[id]);
+
+  //     if (missing.length > 0) loadMissingUsers(missing);
+  //   });
+
+  //   return () => unsubscribe();
+  // }, []);
   useEffect(() => {
-    const unsubscribe = listenToPosts((freshPosts) => {
-      setPosts(freshPosts);
-      setLoading(false);
+    let unsubscribe: (() => void) | undefined;
 
-      // Optional: only load users we don't have yet
-      const missing = freshPosts
-        .map((p) => p.userId)
-        .filter((id) => id && !users[id]);
+    const init = async () => {
+      try {
+        showLoader();
 
-      if (missing.length > 0) loadMissingUsers(missing);
-    });
+        unsubscribe = listenToPosts((freshPosts) => {
+          setPosts(freshPosts);
 
-    return () => unsubscribe();
+          // load missing users
+          const missing = freshPosts
+            .map((p) => p.userId)
+            .filter((id) => id && !users[id]);
+
+          if (missing.length > 0) loadMissingUsers(missing);
+        });
+
+      } catch (error) {
+        console.error("Failed to listen to posts:", error);
+        setError("Failed to load posts");
+      } finally {
+        hideLoader();
+      }
+    };
+
+    init();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   // Helper to load usernames/avatars
@@ -294,7 +329,7 @@ export default function Index() {
   };
 
   // ─── Main return ───────────────────────────────────────
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={COLORS.primary} />
