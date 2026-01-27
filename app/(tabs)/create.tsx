@@ -17,6 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import { addPost } from "@/services/postsService";
 import { uploadPostImage } from "@/services/cloudinaryService";
+import { incrementUserPosts } from "@/services/userService";
 
 export default function CreateScreen() {
   const router = useRouter();
@@ -50,6 +51,9 @@ export default function CreateScreen() {
       const imageUrl = await uploadPostImage(selectedImage);
       // Save to Firestore
       await addPost(imageUrl, caption);
+
+      //Increment user's post count
+      await incrementUserPosts();
       
       // Reset and Navigate
       setSelectedImage(null);

@@ -1,24 +1,31 @@
-import { useEffect, useState, useCallback } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
+  FlatList,
   RefreshControl,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
+import { useLoader } from "@/hooks/useLoader";
 import { auth } from "@/services/firebase";
-import { getCurrentUserDetails, User } from "@/services/userService";
-import { Post, deletePostCompletely, listenToMyPosts } from "@/services/postsService";
 import { listenToFollowers, listenToFollowing } from "@/services/followService";
-import { onAuthStateChanged } from "firebase/auth";
-import { useLoader } from '@/hooks/useLoader';
+import {
+  deletePostCompletely,
+  listenToMyPosts,
+  Post,
+} from "@/services/postsService";
+import {
+  decrementUserPosts,
+  getCurrentUserDetails,
+  User,
+} from "@/services/userService";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -30,7 +37,7 @@ export default function ProfileScreen() {
   const [followingCount, setFollowingCount] = useState(0);
   // const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { showLoader, hideLoader, isLoading } = useLoader()
+  const { showLoader, hideLoader, isLoading } = useLoader();
 
   // ── Load user profile ─────────────────────────────
   const loadProfile = useCallback(async () => {
@@ -38,11 +45,11 @@ export default function ProfileScreen() {
 
     try {
       // setLoading(true);
-      showLoader()
+      showLoader();
       const userData = await getCurrentUserDetails();
       if (!userData) {
         Alert.alert("Error", "Profile not found. Please login again.");
-        return ;
+        return;
       }
       // console.log(userData);
       setUser(userData);
@@ -51,14 +58,14 @@ export default function ProfileScreen() {
       Alert.alert("Error", "Failed to load profile");
     } finally {
       // setLoading(false);
-      hideLoader()
+      hideLoader();
       setRefreshing(false);
     }
   }, [currentUser]);
-  
+
   useEffect(() => {
     if (!currentUser) return;
-    loadProfile();  
+    loadProfile();
   }, [currentUser, loadProfile]);
 
   // ── Real-time followers / following ───────────────
@@ -66,10 +73,10 @@ export default function ProfileScreen() {
     if (!currentUser?.uid) return;
 
     const unsubFollowers = listenToFollowers(currentUser.uid, (followers) =>
-      setFollowersCount(followers.length)
+      setFollowersCount(followers.length),
     );
     const unsubFollowing = listenToFollowing(currentUser.uid, (following) =>
-      setFollowingCount(following.length)
+      setFollowingCount(following.length),
     );
 
     return () => {
@@ -109,7 +116,6 @@ export default function ProfileScreen() {
     loadProfile();
   };
 
-
   // // ── Delete post ─────────────────────────────────
   // const handleDeletePost = (postId: string) => {
   //   Alert.alert("Delete Post", "This action cannot be undone.", [
@@ -141,6 +147,11 @@ export default function ProfileScreen() {
             // Don't manually update state here
             // let the listener handle it
             await deletePostCompletely(postId);
+
+            // decrement user's post count
+            if (currentUser) {
+              await decrementUserPosts(currentUser.uid);
+            }
           } catch (err) {
             Alert.alert("Error", "Could not delete post");
           }
@@ -183,13 +194,15 @@ export default function ProfileScreen() {
     <FlatList
       style={styles.container}
       data={posts}
-      extraData={user}   
+      extraData={user}
       keyExtractor={(item) => item.id}
       numColumns={3}
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.postItem}
-          onPress={() => router.push(`/(profile)/profile-post-details?id=${item.id}`)}
+          onPress={() =>
+            router.push(`/(profile)/profile-post-details?id=${item.id}`)
+          }
           onLongPress={() => handleDeletePost(item.id)}
         >
           <Image
@@ -240,7 +253,9 @@ export default function ProfileScreen() {
           <Text style={styles.emptyText}>No posts yet</Text>
         </View>
       }
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
       showsVerticalScrollIndicator={false}
     />
   );
@@ -257,22 +272,56 @@ function ProfileStat({ label, value }: { label: string; value: number }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "black" },
-  centered: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "black" },
+  centered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "black",
+  },
 
   signInText: { color: "white", fontSize: 20, marginBottom: 16 },
-  loginButton: { backgroundColor: "#10b981", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
+  loginButton: {
+    backgroundColor: "#10b981",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+  },
   loginButtonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 
   postItem: { flex: 1 / 3, aspectRatio: 1, padding: 1 },
   postImage: { flex: 1, borderRadius: 4 },
 
-  headerContainer: { padding: 20, borderBottomWidth: 1, borderBottomColor: "#27272a" },
-  username: { color: "white", fontSize: 24, fontWeight: "bold", marginBottom: 16 },
+  headerContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#27272a",
+  },
+  username: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
 
-  avatarStatsRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-  avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 2, borderColor: "#27272a" },
+  avatarStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: "#27272a",
+  },
 
-  statsRow: { flexDirection: "row", flex: 1, justifyContent: "space-around", marginLeft: 20 },
+  statsRow: {
+    flexDirection: "row",
+    flex: 1,
+    justifyContent: "space-around",
+    marginLeft: 20,
+  },
   statContainer: { alignItems: "center" },
   statValue: { color: "white", fontSize: 22, fontWeight: "bold" },
   statLabel: { color: "#9ca3af", fontSize: 14 },
@@ -281,7 +330,13 @@ const styles = StyleSheet.create({
   bio: { color: "#d1d5db", marginTop: 4 },
   bioPlaceholder: { color: "#6b7280", fontStyle: "italic", marginTop: 4 },
 
-  editButton: { marginTop: 16, borderWidth: 1, borderColor: "#4ADE80", borderRadius: 8, paddingVertical: 12 },
+  editButton: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: "#4ADE80",
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
   editButtonText: { color: "white", textAlign: "center" },
 
   emptyContainer: { alignItems: "center", paddingVertical: 40 },

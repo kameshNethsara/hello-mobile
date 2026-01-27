@@ -11,6 +11,7 @@ import {
   getDoc,
   deleteDoc,
   onSnapshot,
+  increment,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { db } from "./firebase";
@@ -284,4 +285,22 @@ export const getUserById = async (userId: string): Promise<User | null> => {
   userCache.set(userId, userDetails);
   
   return userDetails;
+};
+
+export const incrementUserPosts = async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const userRef = doc(db, "users", user.uid);
+
+  await updateDoc(userRef, {
+    posts: increment(1), // increment posts count by 1
+  });
+};
+
+export const decrementUserPosts = async (userId: string) => {
+  const userRef = doc(db, "users", userId);
+  await updateDoc(userRef, {
+    posts: increment(-1),
+  });
 };
