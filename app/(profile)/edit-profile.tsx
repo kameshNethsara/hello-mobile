@@ -26,6 +26,7 @@ import {
 } from "@/services/userService";
 import { uploadUserAvatar } from "@/services/cloudinaryService";
 import { useLoader } from "@/hooks/useLoader";
+import { COLORS } from "@/constants/theme";
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -281,9 +282,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "#27272a",
   },
   headerTitle: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 16,
+    marginTop: 8,
   },
   doneText: {
     color: "#4ADE80",

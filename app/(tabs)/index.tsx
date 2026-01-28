@@ -2,6 +2,7 @@ import { COLORS } from "@/constants/theme";
 import { useLoader } from "@/hooks/useLoader";
 import { logout } from "@/services/authService";
 import { listenToPostComments } from "@/services/commentsService";
+import { addNotification } from "@/services/notificationService";
 import {
   bookMarkedPost,
   listenToBookMarkedPosts,
@@ -14,6 +15,7 @@ import {
 import { getUserByIdForHome } from "@/services/userService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { getAuth } from "firebase/auth";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -211,7 +213,7 @@ export default function Index() {
           {/* Left side: Like + Comment */}
           <View style={styles.actionsLeft}>
             {/* Like */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={() =>
                 toggleLikePost(
                   item.id,
@@ -219,6 +221,35 @@ export default function Index() {
                   (count) => setLikesCount((p) => ({ ...p, [item.id]: count })),
                 )
               }
+            >
+              <Ionicons
+                name={likedPosts[item.id] ? "heart" : "heart-outline"}
+                size={28}
+                color={likedPosts[item.id] ? "#ff3366" : "#fff"}
+              />
+            </TouchableOpacity> */}
+            {/* Like */}
+            <TouchableOpacity
+              onPress={async () => {
+                toggleLikePost(
+                  item.id,
+                  async (isLiked) => {
+                    setLikedPosts((p) => ({ ...p, [item.id]: isLiked }));
+
+                    // ✅ Add notification only if user liked the post (not unliked)
+                    // and the liker is not the post owner
+                    const currentUserId = getAuth().currentUser?.uid;
+                    if (isLiked && item.userId !== currentUserId) {
+                      try {
+                        await addNotification(item.userId, currentUserId!, "like", item.id);
+                      } catch (err) {
+                        console.error("Failed to add like notification:", err);
+                      }
+                    }
+                  },
+                  (count) => setLikesCount((p) => ({ ...p, [item.id]: count }))
+                );
+              }}
             >
               <Ionicons
                 name={likedPosts[item.id] ? "heart" : "heart-outline"}

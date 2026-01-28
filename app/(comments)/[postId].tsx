@@ -5,10 +5,13 @@ import {
   deleteComment,
   listenToComments,
 } from "@/services/commentsService";
+import { db } from "@/services/firebase";
+import { addNotification } from "@/services/notificationService";
 import { Ionicons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -34,6 +37,8 @@ export default function CommentsScreen() {
   const [sending, setSending] = useState(false);
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
 
+  const [postOwnerId, setPostOwnerId] = useState<string | null>(null);
+
   const COMMENT_PREVIEW_LENGTH = 120;
   const flatListRef = useRef<FlatList>(null);
 
@@ -53,7 +58,44 @@ export default function CommentsScreen() {
     return () => unsubscribe();
   }, [postId]);
 
+  useEffect(() => {
+    if (!postId) return;
+
+    const fetchPostOwner = async () => {
+      try {
+        const postRef = doc(db, "posts", postId);
+        const postSnap = await getDoc(postRef);
+        if (postSnap.exists()) {
+          const data = postSnap.data();
+          setPostOwnerId(data.userId); // assuming each post doc has a 'userId' field
+        }
+      } catch (err) {
+        console.error("Failed to fetch post owner:", err);
+      }
+    };
+
+    fetchPostOwner();
+  }, [postId]);
+
   // ─── Send comment ────────────────────────────────
+  // const handleSend = async () => {
+  //   if (!text.trim() || sending || !postId) return;
+
+  //   setSending(true);
+  //   try {
+  //     await addComment(postId, text.trim());
+  //     setText("");
+
+  //     // Scroll after sending
+  //     setTimeout(() => {
+  //       flatListRef.current?.scrollToEnd({ animated: true });
+  //     }, 300);
+  //   } catch (err) {
+  //     Alert.alert("Error", "Could not post comment. Try again.");
+  //   } finally {
+  //     setSending(false);
+  //   }
+  // };
   const handleSend = async () => {
     if (!text.trim() || sending || !postId) return;
 
@@ -62,12 +104,19 @@ export default function CommentsScreen() {
       await addComment(postId, text.trim());
       setText("");
 
-      // Scroll after sending
+      // Scroll to bottom
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 300);
+
+      // Send notification
+      const currentUserId = auth.currentUser?.uid;
+      if (currentUserId && postOwnerId && currentUserId !== postOwnerId) {
+        await addNotification(postOwnerId, currentUserId, "comment", postId);
+      }
     } catch (err) {
       Alert.alert("Error", "Could not post comment. Try again.");
+      console.error(err);
     } finally {
       setSending(false);
     }

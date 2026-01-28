@@ -23,6 +23,8 @@ import {
 } from "@/services/followService";
 import { listenToUserPosts, Post } from "@/services/postsService";
 import { getUserById, User } from "@/services/userService";
+import { addNotification } from "@/services/notificationService";
+import { COLORS } from "@/constants/theme";
 
 export default function ExternalUserProfile() {
   const router = useRouter();
@@ -109,6 +111,21 @@ export default function ExternalUserProfile() {
     loadProfile();
   };
 
+  // const handleFollowPress = async () => {
+  //   if (!currentUserId || currentUserId === uid || !uid) return;
+
+  //   try {
+  //     if (isFollowingState) {
+  //       await unfollowUser(uid);
+  //       setIsFollowingState(false);
+  //     } else {
+  //       await followUser(uid);
+  //       setIsFollowingState(true);
+  //     }
+  //   } catch (error) {
+  //     Alert.alert("Error", "Could not update follow status");
+  //   }
+  // };
   const handleFollowPress = async () => {
     if (!currentUserId || currentUserId === uid || !uid) return;
 
@@ -119,6 +136,9 @@ export default function ExternalUserProfile() {
       } else {
         await followUser(uid);
         setIsFollowingState(true);
+
+        // Send follow notification
+        await addNotification(uid, currentUserId, "follow");
       }
     } catch (error) {
       Alert.alert("Error", "Could not update follow status");
@@ -258,7 +278,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#27272a",
   },
-  username: { color: "white", fontSize: 24, fontWeight: "bold" },
+  username: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 16,
+  },
   avatarStatsRow: {
     flexDirection: "row",
     alignItems: "center",
