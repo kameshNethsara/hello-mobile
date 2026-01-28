@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/hello-logo-rm-bg-green-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.hello.mobile"
     },
     "web": {
       "output": "static",
@@ -42,6 +43,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d47a0149-61bf-4b47-84c0-62dc31563123"
+      }
     }
   }
 }
