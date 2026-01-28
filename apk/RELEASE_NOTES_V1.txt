@@ -1,0 +1,41 @@
+📦 Release Documentation: Hello Social App (v1.0.0)
+Date: January 29, 2026
+
+Developer: N.H.K.N. De Silva
+
+License: MIT
+
+📄 Version Overview
+This release represents the stable, feature-complete version of the Hello mobile application. The codebase has been optimized for production, following a modular architecture with secure backend integrations.
+
+🛠 Feature Set
+Authentication: Fully implemented Firebase Auth & Google OAuth with protected routing.
+
+Media Handling: Integrated Cloudinary service for high-performance image processing and storage.
+
+Social Logic: * Real-time follow/unfollow system with bidirectional synchronization.
+
+Transaction-safe post liking and nested commenting system.
+
+Post bookmarking (Saved posts) functionality.
+
+State Management: Global Auth and UI Loader context providers with custom hooks.
+
+Infrastructure: Production-ready configuration using EAS Secrets and environment variables.
+
+🏗 Technical Stack & Architecture
+Frontend: Expo (React Native) + NativeWind v4 (Tailwind CSS).
+
+Backend: Firebase Firestore (NoSQL) & Firebase Authentication.
+
+Storage: Cloudinary (Unsigned Upload Presets).
+
+Routing: Expo Router (File-based dynamic navigation).
+
+🔐 Deployment & Security
+Environment Variables: Configured via .env for local development and EAS Secrets for cloud builds.
+
+Data Integrity: Firestore Transactions utilized for all counter increments (Likes/Posts/Followers) to ensure data consistency across multi-user environments.
+
+📝 Developer Note
+This folder contains the final source code intended for the initial public release. All core services are verified, and the system is ready for scalability.
