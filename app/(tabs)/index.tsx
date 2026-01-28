@@ -1,9 +1,9 @@
 import { COLORS } from "@/constants/theme";
 import { useLoader } from "@/hooks/useLoader";
 import { logout } from "@/services/authService";
+import { listenToPostComments } from "@/services/commentsService";
 import {
   bookMarkedPost,
-  isBookMarkedPostSaved,
   listenToBookMarkedPosts,
   listenToPostLikes,
   listenToPosts,
@@ -42,12 +42,14 @@ export default function Index() {
 
   // const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { showLoader, hideLoader, isLoading } = useLoader()
-  
+  const { showLoader, hideLoader, isLoading } = useLoader();
+
   const [error, setError] = useState<string | null>(null);
 
   const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({},);
   const [savedBookMarkedPosts, setSavedBookMarkedPosts] = useState<Record<string, boolean>>({});
+
+  const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
 
   const toggleExpanded = (postId: string) => {
     setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
@@ -86,7 +88,6 @@ export default function Index() {
 
           if (missing.length > 0) loadMissingUsers(missing);
         });
-
       } catch (error) {
         console.error("Failed to listen to posts:", error);
         setError("Failed to load posts");
@@ -112,7 +113,7 @@ export default function Index() {
         try {
           const u = await getUserByIdForHome(uid);
           if (u) newData[uid] = u;
-        } catch {}
+        } catch { }
       }),
     );
 
@@ -178,7 +179,7 @@ export default function Index() {
   //   if (posts.length > 0) checkSaved();
   // }, [posts]);
 
-    // ─── Real-time bookmarked posts ─────────────────────
+  // ─── Real-time bookmarked posts ─────────────────────
   useEffect(() => {
     const unsubscribe = listenToBookMarkedPosts((savedPostIds) => {
       const savedStatus: Record<string, boolean> = {};
@@ -190,6 +191,23 @@ export default function Index() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (posts.length === 0) return;
+
+    const unsubscribes: (() => void)[] = [];
+
+    posts.forEach((post) => {
+      const unsub = listenToPostComments(post.id, (count) => {
+        // console.log("Post ID:", post.id, "Comments Count:", count);
+        setCommentsCount((prev) => ({ ...prev, [post.id]: count }));
+      });
+      unsubscribes.push(unsub);
+    });
+
+    return () => unsubscribes.forEach((u) => u());
+  }, [posts]);
+
 
   // ─── Render single post (improved) ─────────────────────
   const renderPost = ({ item }: { item: Post }) => {
@@ -250,53 +268,69 @@ export default function Index() {
           </View>
         </View> */}
         <View style={styles.postActions}>
-        {/* Left side */}
-        <View style={styles.actionsLeft}>
+          {/* Left side */}
+          <View style={styles.actionsLeft}>
+            <TouchableOpacity
+              onPress={() =>
+                toggleLikePost(
+                  item.id,
+                  (isLiked) =>
+                    setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
+                  (count) => setLikesCount((p) => ({ ...p, [item.id]: count })),
+                )
+              }
+            >
+              <Ionicons
+                name={likedPosts[item.id] ? "heart" : "heart-outline"}
+                size={28}
+                color={likedPosts[item.id] ? "#ff3366" : "#fff"}
+              />
+            </TouchableOpacity>
+
+            <Text style={styles.likesText}>
+              {likesCount[item.id] ?? item.likes ?? 0} likes
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                router.push({
+                  pathname: "/(comments)/[postId]",
+                  params: { postId: item.id },
+                })
+              }
+            >
+              <Ionicons name="chatbubble-outline" size={26} color="#fff" />
+            </TouchableOpacity>
+
+            <Text style={styles.likesText}>
+              {commentsCount[item.id] ?? item.comments ?? 0} comments
+            </Text>
+          </View>
+
+          {/* Right side: Save button */}
           <TouchableOpacity
-            onPress={() =>
-              toggleLikePost(
-                item.id,
-                (isLiked) => setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
-                (count) => setLikesCount((p) => ({ ...p, [item.id]: count }))
-              )
-            }
+            style={styles.saveBtn}
+            onPress={async () => {
+              if (savedBookMarkedPosts[item.id]) {
+                await unBookMarkedPost(item.id);
+              } else {
+                await bookMarkedPost(item.id);
+              }
+              setSavedBookMarkedPosts((prev) => ({
+                ...prev,
+                [item.id]: !prev[item.id],
+              }));
+            }}
           >
             <Ionicons
-              name={likedPosts[item.id] ? "heart" : "heart-outline"}
-              size={28}
-              color={likedPosts[item.id] ? "#ff3366" : "#fff"}
+              name={
+                savedBookMarkedPosts[item.id] ? "bookmark" : "bookmark-outline"
+              }
+              size={26}
+              color={savedBookMarkedPosts[item.id] ? "#FFD700" : "#fff"} // yellow if saved
             />
           </TouchableOpacity>
-
-          <Text style={styles.likesText}>
-            {likesCount[item.id] ?? item.likes ?? 0} likes
-          </Text>
-
-          <TouchableOpacity>
-            <Ionicons name="chatbubble-outline" size={26} color="#fff" />
-          </TouchableOpacity>
         </View>
-
-        {/* Right side: Save button */}
-        <TouchableOpacity
-          style={styles.saveBtn}
-          onPress={async () => {
-            if (savedBookMarkedPosts[item.id]) {
-              await unBookMarkedPost(item.id);
-            } else {
-              await bookMarkedPost(item.id);
-            }
-            setSavedBookMarkedPosts((prev) => ({ ...prev, [item.id]: !prev[item.id] }));
-          }}
-        >
-          <Ionicons
-            name={savedBookMarkedPosts[item.id] ? "bookmark" : "bookmark-outline"}
-            size={26}
-            color={savedBookMarkedPosts[item.id] ? "#FFD700" : "#fff"} // yellow if saved
-          />
-        </TouchableOpacity>
-
-      </View>
 
         {item.caption ? (
           <View style={styles.postInfo}>
@@ -306,7 +340,7 @@ export default function Index() {
               {expandedPosts[item.id]
                 ? item.caption
                 : item.caption?.slice(0, 100) +
-                  (item.caption.length > 100 ? "..." : "")}
+                (item.caption.length > 100 ? "..." : "")}
             </Text>
 
             {item.caption?.length > 100 && (
@@ -356,9 +390,14 @@ export default function Index() {
           </TouchableOpacity>
         </View>
       ) : posts.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={{ color: COLORS.grey }}>No posts yet</Text>
-        </View>
+        // <View style={styles.centered}>
+        //   <Text style={{ color: COLORS.grey }}>No posts yet</Text>
+       // </View>
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ color: COLORS.grey, marginTop: 12 }}>Loading posts...</Text>
+      </View>
+      
       ) : (
         <FlatList
           data={posts}
