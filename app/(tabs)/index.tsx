@@ -251,13 +251,14 @@ export default function Index() {
                 style={[
                   styles.likesText,
                   {
-                    fontSize: 15,
-                    color: commentCount > 0 ? "#40C4FF" : COLORS.white,
-                    fontWeight: commentCount > 0 ? "800" : "700",
+                    // fontSize: 15,
+                    color: commentCount > 0 ? "#fff" : COLORS.white,
+                    // fontWeight: commentCount > 0 ? "800" : "700",
+                    left: 2,
                   },
                 ]}
               >
-                {commentCount}
+                {commentCount} comments
               </Text>
             </TouchableOpacity>
           </View>
@@ -445,6 +446,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "700",
     marginBottom: 4,
+    left: -12,
   },
   captionText: {
     color: COLORS.white,
