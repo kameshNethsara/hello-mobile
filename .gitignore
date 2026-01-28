@@ -39,6 +39,10 @@ yarn-error.*
 
 app-example
 
+# I used native-wind style that is not supporting my mobile phone. 
+app/(profile)/(test-nativewind)
+app/(tabs)/(test-nativewind)
+
 # generated native folders
 /ios
 /android
