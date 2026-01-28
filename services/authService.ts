@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth, db } from "./firebase";
 import { doc, setDoc, Timestamp } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -64,13 +64,29 @@ const registerUser = async (
 };
 
 const logout = async () => {
-    console.log("logout")
+    // console.log("logout")
     await auth.signOut()
     AsyncStorage.clear()
     // AsyncStorage.setItem("key", {});
     // AsyncStorage.getItem("key");
 
     return
+};
+
+export const resetPassword = async (email: string) => {
+  try {
+    await sendPasswordResetEmail(auth, email); // pass auth
+    return { success: true };
+  } catch (error: any) {
+    console.error("Password reset error:", error);
+    let message = "Failed to send reset email";
+    if (error.code === "auth/user-not-found") {
+      message = "No user found with this email";
+    } else if (error.code === "auth/invalid-email") {
+      message = "Invalid email address";
+    }
+    return { success: false, message };
+  }
 };
 
 export { loging, registerUser, logout };
