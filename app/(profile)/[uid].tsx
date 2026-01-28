@@ -12,10 +12,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import { useLoader } from "@/hooks/useLoader";
 import { auth } from "@/services/firebase";
-import { listenToFollowers, listenToFollowing } from "@/services/followService";
+import {
+  followUser,
+  unfollowUser,
+  isFollowing,           // ← using the correct imported function
+  listenToFollowers,
+  listenToFollowing,
+} from "@/services/followService";
 import { listenToUserPosts, Post } from "@/services/postsService";
 import { getUserById, User } from "@/services/userService";
 
@@ -28,7 +33,7 @@ export default function ExternalUserProfile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowingState, setIsFollowingState] = useState(false); // renamed to avoid name conflict
   const [refreshing, setRefreshing] = useState(false);
 
   const { showLoader, hideLoader, isLoading } = useLoader();
@@ -42,32 +47,44 @@ export default function ExternalUserProfile() {
       if (userData) {
         setUser(userData);
       }
-
-      if (currentUserId && currentUserId !== uid) {
-        // const followingStatus = await isFollowingUser(currentUserId, uid);
-        // setIsFollowing(followingStatus);
-      }
     } catch (error) {
       Alert.alert("Error", "Failed to load profile");
     } finally {
       hideLoader();
       setRefreshing(false);
     }
-  }, [uid, currentUserId]);
+  }, [uid, showLoader, hideLoader]);
 
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
 
-  // ── Real-time followers / following ───────────────
+  // ── Check if current user is following this profile ──
+  useEffect(() => {
+    if (!currentUserId || !uid || currentUserId === uid) return;
+
+    const checkFollowStatus = async () => {
+      try {
+        const followingStatus = await isFollowing(uid); // ← correct usage
+        setIsFollowingState(followingStatus);
+      } catch (err) {
+        console.error("Failed to check follow status:", err);
+      }
+    };
+
+    checkFollowStatus();
+  }, [uid, currentUserId]);
+
+  // ── Real-time followers / following counts ────────
   useEffect(() => {
     if (!uid) return;
 
     const unsubFollowers = listenToFollowers(uid, (followers) =>
-      setFollowersCount(followers.length),
+      setFollowersCount(followers.length)
     );
+
     const unsubFollowing = listenToFollowing(uid, (following) =>
-      setFollowingCount(following.length),
+      setFollowingCount(following.length)
     );
 
     return () => {
@@ -76,11 +93,12 @@ export default function ExternalUserProfile() {
     };
   }, [uid]);
 
-  // ── Real-time specific user posts ─────────────────
+  // ── Real-time user posts ──────────────────────────
   useEffect(() => {
     if (!uid) return;
-    const unsubscribePosts = listenToUserPosts(uid, (posts) => {
-      setPosts(posts);
+
+    const unsubscribePosts = listenToUserPosts(uid, (newPosts) => {
+      setPosts(newPosts);
     });
 
     return () => unsubscribePosts();
@@ -92,10 +110,16 @@ export default function ExternalUserProfile() {
   };
 
   const handleFollowPress = async () => {
-    if (!currentUserId || currentUserId === uid) return;
+    if (!currentUserId || currentUserId === uid || !uid) return;
+
     try {
-      // await toggleFollowUser(currentUserId, uid!);
-      setIsFollowing(!isFollowing);
+      if (isFollowingState) {
+        await unfollowUser(uid);
+        setIsFollowingState(false);
+      } else {
+        await followUser(uid);
+        setIsFollowingState(true);
+      }
     } catch (error) {
       Alert.alert("Error", "Could not update follow status");
     }
@@ -166,11 +190,11 @@ export default function ExternalUserProfile() {
               onPress={handleFollowPress}
               style={[
                 styles.editButton,
-                isFollowing ? styles.followingBtn : styles.followBtn,
+                isFollowingState ? styles.followingBtn : styles.followBtn,
               ]}
             >
               <Text style={styles.editButtonText}>
-                {isFollowing ? "Following" : "Follow"}
+                {isFollowingState ? "Following" : "Follow"}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -190,7 +214,11 @@ export default function ExternalUserProfile() {
         </View>
       }
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#10b981"
+        />
       }
       showsVerticalScrollIndicator={false}
     />
@@ -214,24 +242,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "black",
   },
-
+  
   topRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 16,
   },
-
+  
   postItem: { flex: 1 / 3, aspectRatio: 1, padding: 1 },
   postImage: { flex: 1, borderRadius: 4 },
-
+  
   headerContainer: {
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: "#27272a",
   },
   username: { color: "white", fontSize: 24, fontWeight: "bold" },
-
   avatarStatsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -244,7 +271,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#27272a",
   },
-
+  
   statsRow: {
     flexDirection: "row",
     flex: 1,
@@ -254,12 +281,11 @@ const styles = StyleSheet.create({
   statContainer: { alignItems: "center" },
   statValue: { color: "white", fontSize: 22, fontWeight: "bold" },
   statLabel: { color: "#9ca3af", fontSize: 14 },
-
+  
   fullname: { color: "white", fontSize: 16, fontWeight: "500" },
   bio: { color: "#d1d5db", marginTop: 4 },
   bioPlaceholder: { color: "#6b7280", fontStyle: "italic", marginTop: 4 },
-
-  // Matched with your original Profile Screen styles
+  
   editButton: {
     marginTop: 16,
     borderWidth: 1,
@@ -268,11 +294,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   editButtonText: { color: "white", textAlign: "center", fontWeight: "500" },
-
-  // Specific states for the Follow button
+  
   followBtn: { backgroundColor: "#10b981", borderColor: "#10b981" },
   followingBtn: { backgroundColor: "transparent", borderColor: "#4ADE80" },
-
+  
   emptyContainer: { alignItems: "center", paddingVertical: 40 },
   emptyText: { color: "#9ca3af", fontSize: 18, marginTop: 12 },
+
 });
