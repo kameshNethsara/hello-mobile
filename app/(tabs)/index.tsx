@@ -40,13 +40,12 @@ export default function Index() {
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
   const [likesCount, setLikesCount] = useState<Record<string, number>>({});
 
-  // const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { showLoader, hideLoader, isLoading } = useLoader();
 
   const [error, setError] = useState<string | null>(null);
 
-  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({},);
+  const [expandedPosts, setExpandedPosts] = useState<Record<string, boolean>>({});
   const [savedBookMarkedPosts, setSavedBookMarkedPosts] = useState<Record<string, boolean>>({});
 
   const [commentsCount, setCommentsCount] = useState<Record<string, number>>({});
@@ -55,33 +54,16 @@ export default function Index() {
     setExpandedPosts((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  // ─── Real-time listener ────────────────────────────────
-  // useEffect(() => {
-  //   const unsubscribe = listenToPosts((freshPosts) => {
-  //     setPosts(freshPosts);
-  //     setLoading(false);
-
-  //     // Optional: only load users we don't have yet
-  //     const missing = freshPosts
-  //       .map((p) => p.userId)
-  //       .filter((id) => id && !users[id]);
-
-  //     if (missing.length > 0) loadMissingUsers(missing);
-  //   });
-
-  //   return () => unsubscribe();
-  // }, []);
+  // Real-time posts listener
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
     const init = async () => {
       try {
         showLoader();
-
         unsubscribe = listenToPosts((freshPosts) => {
           setPosts(freshPosts);
 
-          // load missing users
           const missing = freshPosts
             .map((p) => p.userId)
             .filter((id) => id && !users[id]);
@@ -103,7 +85,7 @@ export default function Index() {
     };
   }, []);
 
-  // Helper to load usernames/avatars
+  // Load missing user data
   const loadMissingUsers = async (uids: string[]) => {
     const unique = [...new Set(uids)];
     const newData: typeof users = {};
@@ -113,7 +95,7 @@ export default function Index() {
         try {
           const u = await getUserByIdForHome(uid);
           if (u) newData[uid] = u;
-        } catch { }
+        } catch {}
       }),
     );
 
@@ -122,7 +104,7 @@ export default function Index() {
     }
   };
 
-  // ─── Likes real-time per post ──────────────────────────
+  // Real-time likes per post
   useEffect(() => {
     if (posts.length === 0) return;
 
@@ -137,14 +119,41 @@ export default function Index() {
     });
 
     return () => unsubscribes.forEach((u) => u());
-  }, [posts]); // re-run when posts change
+  }, [posts]);
 
-  // ─── Pull to refresh ───────────────────────────────────
+  // Real-time comments count per post
+  useEffect(() => {
+    if (posts.length === 0) return;
+
+    const unsubscribes: (() => void)[] = [];
+
+    posts.forEach((post) => {
+      const unsub = listenToPostComments(post.id, (count) => {
+        setCommentsCount((prev) => ({ ...prev, [post.id]: count }));
+      });
+      unsubscribes.push(unsub);
+    });
+
+    return () => unsubscribes.forEach((u) => u());
+  }, [posts]);
+
+  // Real-time bookmarked posts
+  useEffect(() => {
+    const unsubscribe = listenToBookMarkedPosts((savedPostIds) => {
+      const savedStatus: Record<string, boolean> = {};
+      savedPostIds.forEach((id) => {
+        savedStatus[id] = true;
+      });
+      setSavedBookMarkedPosts(savedStatus);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Pull to refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // With real-time listener active → usually no need to re-fetch
-    // But you can force re-order or clear cache if wanted
-    await new Promise((r) => setTimeout(r, 600)); // fake network
+    await new Promise((r) => setTimeout(r, 600));
     setRefreshing(false);
   }, []);
 
@@ -166,55 +175,14 @@ export default function Index() {
     ]);
   };
 
-  // //BookMark useEffect
-  // useEffect(() => {
-  //   const checkSaved = async () => {
-  //     const savedStatus: Record<string, boolean> = {};
-  //     for (const post of posts) {
-  //       savedStatus[post.id] = await isBookMarkedPostSaved(post.id);
-  //     }
-  //     setSavedBookMarkedPosts(savedStatus);
-  //   };
-
-  //   if (posts.length > 0) checkSaved();
-  // }, [posts]);
-
-  // ─── Real-time bookmarked posts ─────────────────────
-  useEffect(() => {
-    const unsubscribe = listenToBookMarkedPosts((savedPostIds) => {
-      const savedStatus: Record<string, boolean> = {};
-      savedPostIds.forEach((id) => {
-        savedStatus[id] = true;
-      });
-      setSavedBookMarkedPosts(savedStatus);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (posts.length === 0) return;
-
-    const unsubscribes: (() => void)[] = [];
-
-    posts.forEach((post) => {
-      const unsub = listenToPostComments(post.id, (count) => {
-        // console.log("Post ID:", post.id, "Comments Count:", count);
-        setCommentsCount((prev) => ({ ...prev, [post.id]: count }));
-      });
-      unsubscribes.push(unsub);
-    });
-
-    return () => unsubscribes.forEach((u) => u());
-  }, [posts]);
-
-
-  // ─── Render single post (improved) ─────────────────────
+  // ─── Render single post ─────────────────────
   const renderPost = ({ item }: { item: Post }) => {
     const user = users[item.userId] ?? {
       username: "…",
       avatar: "https://ui-avatars.com/api/?name=User&background=333&color=fff",
     };
+
+    const commentCount = commentsCount[item.id] ?? 0;
 
     return (
       <View style={styles.post}>
@@ -239,43 +207,15 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        {/* <View style={styles.postActions}>
-          <View style={styles.actionsLeft}>
-            <TouchableOpacity
-              onPress={() =>
-                toggleLikePost(
-                  item.id,
-                  (isLiked) =>
-                    setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
-                  (count) => setLikesCount((p) => ({ ...p, [item.id]: count })),
-                )
-              }
-            >
-              <Ionicons
-                name={likedPosts[item.id] ? "heart" : "heart-outline"}
-                size={28}
-                color={likedPosts[item.id] ? "#ff3366" : "#fff"}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.likesText}>
-              {likesCount[item.id] ?? item.likes ?? 0} likes
-            </Text>
-
-            <TouchableOpacity>
-              <Ionicons name="chatbubble-outline" size={26} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View> */}
         <View style={styles.postActions}>
-          {/* Left side */}
+          {/* Left side: Like + Comment */}
           <View style={styles.actionsLeft}>
+            {/* Like */}
             <TouchableOpacity
               onPress={() =>
                 toggleLikePost(
                   item.id,
-                  (isLiked) =>
-                    setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
+                  (isLiked) => setLikedPosts((p) => ({ ...p, [item.id]: isLiked })),
                   (count) => setLikesCount((p) => ({ ...p, [item.id]: count })),
                 )
               }
@@ -291,6 +231,7 @@ export default function Index() {
               {likesCount[item.id] ?? item.likes ?? 0} likes
             </Text>
 
+            {/* Comment */}
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -298,16 +239,30 @@ export default function Index() {
                   params: { postId: item.id },
                 })
               }
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             >
-              <Ionicons name="chatbubble-outline" size={26} color="#fff" />
-            </TouchableOpacity>
+              <Ionicons
+                name={commentCount > 0 ? "chatbubble-ellipses" : "chatbubble-outline"}
+                size={28}
+                color={commentCount > 0 ? "#40C4FF" : "#ccc"}
+              />
 
-            <Text style={styles.likesText}>
-              {commentsCount[item.id] ?? item.comments ?? 0} comments
-            </Text>
+              <Text
+                style={[
+                  styles.likesText,
+                  {
+                    fontSize: 15,
+                    color: commentCount > 0 ? "#40C4FF" : COLORS.white,
+                    fontWeight: commentCount > 0 ? "800" : "700",
+                  },
+                ]}
+              >
+                {commentCount}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Right side: Save button */}
+          {/* Right side: Bookmark */}
           <TouchableOpacity
             style={styles.saveBtn}
             onPress={async () => {
@@ -323,11 +278,9 @@ export default function Index() {
             }}
           >
             <Ionicons
-              name={
-                savedBookMarkedPosts[item.id] ? "bookmark" : "bookmark-outline"
-              }
+              name={savedBookMarkedPosts[item.id] ? "bookmark" : "bookmark-outline"}
               size={26}
-              color={savedBookMarkedPosts[item.id] ? "#FFD700" : "#fff"} // yellow if saved
+              color={savedBookMarkedPosts[item.id] ? "#FFD700" : "#fff"}
             />
           </TouchableOpacity>
         </View>
@@ -336,11 +289,10 @@ export default function Index() {
           <View style={styles.postInfo}>
             <Text style={styles.captionText}>
               <Text style={{ fontWeight: "700" }}>{user.username} </Text>
-
               {expandedPosts[item.id]
                 ? item.caption
                 : item.caption?.slice(0, 100) +
-                (item.caption.length > 100 ? "..." : "")}
+                  (item.caption?.length > 100 ? "..." : "")}
             </Text>
 
             {item.caption?.length > 100 && (
@@ -390,14 +342,12 @@ export default function Index() {
           </TouchableOpacity>
         </View>
       ) : posts.length === 0 ? (
-        // <View style={styles.centered}>
-        //   <Text style={{ color: COLORS.grey }}>No posts yet</Text>
-       // </View>
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ color: COLORS.grey, marginTop: 12 }}>Loading posts...</Text>
-      </View>
-      
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ color: COLORS.grey, marginTop: 12 }}>
+            Loading posts...
+          </Text>
+        </View>
       ) : (
         <FlatList
           data={posts}

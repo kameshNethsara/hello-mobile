@@ -11,7 +11,7 @@ import {
   Platform 
 } from "react-native";
 import { Image } from "expo-image";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   doc,
@@ -27,18 +27,19 @@ import { useLoader } from "@/hooks/useLoader";
 import { 
   editPostCaption, 
   listenToPostLikes,
-  listenToPosts,
   Post,
   toggleLikePost,
 } from "@/services/postsService";
+import { listenToPostComments } from "@/services/commentsService";  // ← import this!
 import { Ionicons } from "@expo/vector-icons";
 
 const { width } = Dimensions.get("window");
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<Post | null>(null);
   const [owner, setOwner] = useState<any>(null);
 
   const isOwner = auth.currentUser?.uid === post?.userId;
@@ -52,24 +53,14 @@ export default function PostDetailScreen() {
 
   const { showLoader, hideLoader, isLoading } = useLoader();
 
-  // const [liked, setLiked] = useState(false);
-  // const [likesCount, setLikesCount] = useState<number>(0);
-    const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
-    const [likesCount, setLikesCount] = useState<Record<string, number>>({});
-    
+  // Likes
+  const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
+  const [likesCount, setLikesCount] = useState<Record<string, number>>({});
 
-  // ── Handle Toggle Like ─────────────────────────────
-  // const handleToggleLike = async () => {
-  //   if (!post) return;
-  //   try {
-  //     // The service uses runTransaction, so the UI will update via the onSnapshot listener
-  //     await toggleLikePost(post.id, setLiked, setLikesCount);
-  //   } catch (err) {
-  //     console.error("Failed to toggle like", err);
-  //   }
-  // };
+  // Comments count ← new
+  const [commentsCount, setCommentsCount] = useState<number>(0);
 
-  // ── Real-time likes for this post ──
+  // ── Real-time Likes ───────────────────────────────
   useEffect(() => {
     if (!post?.id) return;
 
@@ -81,36 +72,35 @@ export default function PostDetailScreen() {
     return () => unsubscribe();
   }, [post?.id]);
 
-  // ── Real-time Post Data Listener ───────────────────
+  // ── Real-time Comments Count ──────────────────────
+  useEffect(() => {
+    if (!post?.id) return;
+
+    const unsubscribe = listenToPostComments(post.id, (count) => {
+      setCommentsCount(count);
+    });
+
+    return () => unsubscribe();
+  }, [post?.id]);
+
+  // ── Real-time Post Data ───────────────────────────
   useEffect(() => {
     if (!id) return;
 
-    // Listen to the specific post for real-time likes and caption updates
     const postRef = doc(db, "posts", id);
     const unsubscribe = onSnapshot(postRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setPost({ id: docSnap.id, ...data });
-        setLikesCount(data.likes || 0);
+        setPost({ id: docSnap.id, ...data } as Post);
+      } else {
+        setPost(null);
       }
     });
 
     return () => unsubscribe();
   }, [id]);
 
-  // ── Check if current user liked the post ───────────
-  // useEffect(() => {
-  //   if (!id || !auth.currentUser) return;
-
-  //   const likeRef = doc(db, "posts", id, "likes", auth.currentUser.uid);
-  //   const unsubscribe = onSnapshot(likeRef, (docSnap) => {
-  //     setLiked(docSnap.exists());
-  //   });
-
-  //   return () => unsubscribe();
-  // }, [id]);
-
-  // ── Load Post Owner Data ───────────────────────────
+  // ── Load Post Owner ───────────────────────────────
   useEffect(() => {
     if (!post?.userId) return;
 
@@ -192,39 +182,57 @@ export default function PostDetailScreen() {
           />
         </View>
 
-        {/* Details */}
+        {/* Actions + Caption */}
         <View style={styles.details}>
           <View style={styles.actionsRow}>
-            {/* <TouchableOpacity onPress={handleToggleLike} style={styles.actionBtn}>
-              <Ionicons
-                name={liked ? "heart" : "heart-outline"}
-                size={26}
-                color={liked ? "red" : "#fff"}
-              />
-            </TouchableOpacity> */}
+            {/* Like */}
             <TouchableOpacity
-              onPress={() => post && toggleLikePost(
-                post.id,
-                (isLiked) => setLikedPosts({ [post.id]: isLiked }),
-                (count) => setLikesCount({ [post.id]: count })
-              )}
+              onPress={() =>
+                toggleLikePost(
+                  post.id,
+                  (isLiked) => setLikedPosts({ [post.id]: isLiked }),
+                  (count) => setLikesCount({ [post.id]: count })
+                )
+              }
               style={styles.actionBtn}
             >
               <Ionicons
                 name={likedPosts[post.id] ? "heart" : "heart-outline"}
-                size={26}
-                color={likedPosts[post.id] ? "red" : "#fff"}
+                size={28}
+                color={likedPosts[post.id] ? "#ff3366" : "#fff"}
               />
             </TouchableOpacity>
 
-            {/* <Text style={styles.likesText}>{likesCount} likes</Text> */}
-            <Text style={styles.likesText}>{likesCount[post.id] ?? 0} likes</Text>
+            <Text style={styles.likesText}>
+              {likesCount[post.id] ?? post.likes ?? 0} likes
+            </Text>
 
-            <TouchableOpacity onPress={() => console.log("Go to comments")} style={styles.actionBtn}>
-              <Ionicons name="chatbubble-outline" size={26} color="#fff" />
+            {/* Comment Button + Count */}
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/(comments)/[postId]",
+                  params: { postId: post.id },
+                })
+              }
+            >
+              <Ionicons
+                name={commentsCount > 0 ? "chatbubble-ellipses" : "chatbubble-outline"}
+                size={28}
+                color={commentsCount > 0 ? "#40C4FF" : "#ddd"}
+              />
             </TouchableOpacity>
+
+            <Text style={[
+              styles.likesText,
+              commentsCount > 0 && { color: "#fff"}
+            ]}>
+              {commentsCount} {commentsCount === 1 ? "comment" : "comments"}
+            </Text>
           </View>
 
+          {/* Caption */}
           <View style={styles.contentSection}>
             {isEditing ? (
               <>
@@ -259,19 +267,19 @@ export default function PostDetailScreen() {
                     {owner?.username || "user"}{" "}
                   </Text>
 
-                  {expanded || post.caption?.length <= CAPTION_LIMIT
-                    ? post.caption?.replace(/\n/g, " ")
-                    : post.caption?.slice(0, CAPTION_LIMIT).replace(/\n/g, " ") + "..."}
+                  {expanded || !post.caption || post.caption.length <= CAPTION_LIMIT
+                    ? post.caption
+                    : post.caption.slice(0, CAPTION_LIMIT) + "..."}
                 </Text>
 
-                {post.caption?.length > CAPTION_LIMIT && (
+                {post.caption && post.caption.length > CAPTION_LIMIT && (
                   <TouchableOpacity onPress={() => setExpanded(!expanded)}>
                     <Text style={styles.readMoreText}>
                       {expanded ? "Read less" : "Read more"}
                     </Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {isOwner && (
                   <TouchableOpacity
                     onPress={() => {
@@ -288,8 +296,8 @@ export default function PostDetailScreen() {
             )}
           </View>
         </View>
-        
-        <View style={{ height: 40 }} />
+
+        <View style={{ height: 60 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -305,10 +313,15 @@ const styles = StyleSheet.create({
   imageContainer: { width: width, height: width * 0.95, backgroundColor: "#111", overflow: "hidden" },
   image: { flex: 1, width: "100%" },
   details: { paddingHorizontal: 16 },
-  actionsRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, gap: 16 },
+  actionsRow: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    paddingVertical: 12, 
+    gap: 20 
+  },
   actionBtn: { padding: 4 },
   likesText: { color: "white", fontWeight: "700", fontSize: 15 },
-  contentSection: { marginTop: 12 },
+  contentSection: { marginTop: 8 },
   caption: { color: "white", fontSize: 15, lineHeight: 22 },
   captionInput: {
     color: "white",
@@ -321,11 +334,16 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
     backgroundColor: "#111",
   },
-  readMoreText: { color: "#9ca3af", marginTop: 4, fontWeight: "bold", textDecorationLine: "underline", fontSize: 14 },
+  readMoreText: { 
+    color: "#9ca3af", 
+    marginTop: 6, 
+    fontWeight: "600", 
+    fontSize: 14 
+  },
   charCount: { color: "#6b7280", textAlign: "right", marginTop: 6, fontSize: 12 },
-  editButton: { marginTop: 8, alignSelf: 'flex-start' },
+  editButton: { marginTop: 10, alignSelf: 'flex-start' },
   editText: { color: "#4ADE80", fontSize: 14, fontWeight: "500" },
-  editActions: { flexDirection: "row", justifyContent: "flex-end", gap: 24, marginTop: 12 },
+  editActions: { flexDirection: "row", justifyContent: "flex-end", gap: 28, marginTop: 14 },
   saveText: { color: "#4ADE80", fontWeight: "bold", fontSize: 16 },
   cancelText: { color: "#9ca3af", fontSize: 16 },
 });
