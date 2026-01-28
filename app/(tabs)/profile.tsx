@@ -26,6 +26,7 @@ import {
   getCurrentUserDetails,
   User,
 } from "@/services/userService";
+import { COLORS } from "@/constants/theme";
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -297,9 +298,9 @@ const styles = StyleSheet.create({
     borderBottomColor: "#27272a",
   },
   username: {
-    color: "white",
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.primary,
     marginBottom: 16,
   },
 

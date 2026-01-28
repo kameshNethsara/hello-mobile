@@ -18,6 +18,7 @@ import * as ImagePicker from "expo-image-picker";
 import { addPost } from "@/services/postsService";
 import { uploadPostImage } from "@/services/cloudinaryService";
 import { incrementUserPosts } from "@/services/userService";
+import { COLORS } from "@/constants/theme";
 
 export default function CreateScreen() {
   const router = useRouter();
@@ -76,7 +77,8 @@ export default function CreateScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={28} color="#4ADE80" />
           </TouchableOpacity>
-          <Text className="text-white text-lg font-semibold">New Post</Text>
+          {/* <Text className="text-white text-lg font-semibold">New Post</Text> */}
+          <Text style={styles.title}>New Post</Text>
           <View className="w-7" />
         </View>
 
@@ -175,6 +177,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "black",
+  },
+   title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.primary,
+    marginBottom: 16,
   },
   scrollContent: {
     flexGrow: 1,
