@@ -111,7 +111,16 @@ Built with **Expo** (React Native), it delivers a clean, smooth, and interactive
 
 You can download the latest **Hello App APK** for Android here:
 
-[Download Hello App APK](https://github.com/kameshNethsara/hello-mobile/releases/download/v1.0.0/hello-app.apk)
+<p align="center">
+  <a href="apk/v1/application-a9fd09c4-3680-49c9-93f5-622a5cd4e2a7.apk" download>
+    <img
+      src="https://img.shields.io/badge/Download-Android%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white"
+      alt="Download APK"
+    />
+  </a>
+</p>
+
+
 
 > ⚠️ Note: Make sure to allow installation from unknown sources on your device settings before installing.
 
