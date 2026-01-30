@@ -1,25 +1,25 @@
+import { getAuth } from "firebase/auth";
 import {
   addDoc,
   collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  Timestamp,
-  doc,
-  updateDoc,
-  getDoc,
   deleteDoc,
-  onSnapshot,
+  doc,
+  getDoc,
+  getDocs,
   increment,
+  onSnapshot,
+  orderBy,
+  query,
+  Timestamp,
+  updateDoc,
+  where,
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import { db } from "./firebase";
+import { getFollowers, getFollowing } from "./followService";
+import { deletePostCompletely } from "./postsService";
 
 const auth = getAuth();
 const usersCollection = collection(db, "users");
-import { deletePostCompletely } from "./postsService";
-import { getFollowing, getFollowers } from "./followService"; 
 
 // ---------------- USER INTERFACE ----------------
 export interface User {
@@ -246,6 +246,7 @@ export const getUserByIdForHome = async (userId: string) => {
   const user = snap.data();
   const data = {
     username: user.username,
+    fullname: user.fullname,
     avatar: user.image,
   };
 
