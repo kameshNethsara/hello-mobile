@@ -1,31 +1,31 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { COLORS } from "@/constants/theme";
+import { useLoader } from "@/hooks/useLoader";
 import { auth, db } from "@/services/firebase";
+import { deleteNotification } from "@/services/notificationService";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   collection,
-  query,
-  where,
-  orderBy,
+  doc,
+  getDoc,
   limit,
   onSnapshot,
-  getDoc,
-  doc,
+  orderBy,
+  query,
   Timestamp,
+  where,
 } from "firebase/firestore";
-import { useLoader } from "@/hooks/useLoader";
-import { COLORS } from "@/constants/theme";
-import { deleteNotification } from "@/services/notificationService";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type NotificationType = "follow" | "like" | "comment";
 
@@ -84,7 +84,7 @@ export default function NotificationsScreen() {
               notif.fromUsername = u.username || "User";
               notif.fromAvatar =
                 u.image ||
-                `https://ui-avatars.com/api/?name=${u.username || "User"}&background=10b981&color=fff`;
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(u.fullname || u.username || "User")}&background=10b981&color=fff`;
             }
           } catch (err) {
             console.error("Error fetching user info:", err);
@@ -163,7 +163,7 @@ export default function NotificationsScreen() {
       </View>
       {item.postImage && <Image source={{ uri: item.postImage }} style={styles.postPreview} />}
       {!item.read && <View style={styles.unreadDot} />}
-      
+
       {/* Delete button */}
       <TouchableOpacity
         onPress={async () => {
@@ -185,25 +185,29 @@ export default function NotificationsScreen() {
     );
   }
 
-  if (notifications.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={{ color: COLORS.grey, marginTop: 12 }}>
-            Loading notifications...
-        </Text>
-      </View>
-    );
-  }
-
+  // if (notifications.length === 0) {
+  //   return (
+  //     <View style={styles.centered}>
+  //       <ActivityIndicator size="large" color={COLORS.primary} />
+  //       <Text style={{ color: COLORS.grey, marginTop: 12 }}>
+  //           Loading notifications...
+  //       </Text>
+  //     </View>
+  //   );
+  // }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Notifications</Text>
       </View>
+
       {notifications.length === 0 ? (
         <View style={styles.empty}>
-          <Ionicons name="notifications-off-outline" size={60} color="#4b5563" />
+          <Ionicons
+            name="notifications-off-outline"
+            size={60}
+            color="#4b5563"
+          />
           <Text style={styles.emptyText}>No notifications yet</Text>
         </View>
       ) : (
@@ -211,7 +215,13 @@ export default function NotificationsScreen() {
           data={notifications}
           keyExtractor={(item) => item.id}
           renderItem={renderNotification}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
+            />
+          }
         />
       )}
     </View>
@@ -229,10 +239,10 @@ function formatTimeAgo(timestamp: any): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: "black" },
   header: { padding: 16, borderBottomWidth: 1, borderBottomColor: "#27272a" },
   headerTitle: { fontSize: 22, fontWeight: "700", color: COLORS.primary },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "black" },
   empty: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12 },
   emptyText: { color: "#9ca3af", fontSize: 16 },
   item: { flexDirection: "row", padding: 12, alignItems: "center" },
@@ -247,5 +257,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "black",
   },
 });
