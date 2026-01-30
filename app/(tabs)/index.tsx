@@ -36,7 +36,7 @@ export default function Index() {
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [users, setUsers] = useState<
-    Record<string, { username: string; avatar: string }>
+    Record<string, { username: string; fullname?: string; avatar: string }>
   >({});
 
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
@@ -97,7 +97,7 @@ export default function Index() {
         try {
           const u = await getUserByIdForHome(uid);
           if (u) newData[uid] = u;
-        } catch {}
+        } catch { }
       }),
     );
 
@@ -179,10 +179,16 @@ export default function Index() {
 
   // ─── Render single post ─────────────────────
   const renderPost = ({ item }: { item: Post }) => {
-    const user = users[item.userId] ?? {
-      username: "…",
-      avatar: "https://ui-avatars.com/api/?name=User&background=333&color=fff",
-    };
+    const userInfo = users[item.userId];
+    const username = userInfo?.username || "…";
+    const fullname = userInfo?.fullname || username;
+    const avatar =
+      userInfo?.avatar ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        fullname || "User"
+      )}&background=333&color=fff`;
+
+    const user = { username, avatar };
 
     const commentCount = commentsCount[item.id] ?? 0;
 
@@ -324,7 +330,7 @@ export default function Index() {
               {expandedPosts[item.id]
                 ? item.caption
                 : item.caption?.slice(0, 100) +
-                  (item.caption?.length > 100 ? "..." : "")}
+                (item.caption?.length > 100 ? "..." : "")}
             </Text>
 
             {item.caption?.length > 100 && (
